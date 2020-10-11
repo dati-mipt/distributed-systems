@@ -6,10 +6,6 @@ type storeReplica interface {
 	Update(key int64, value int64, ts util.Timestamp)
 }
 
-type timedRow struct {
-	ts  util.Timestamp
-	val int64
-}
 type EventualStore struct {
 	rid        int64
 	localClock int64
@@ -35,6 +31,7 @@ func (s EventualStore) Write(key int64, value int64) bool {
 
 	return true
 }
+
 func (s EventualStore) Read(key int64) int64 {
 	if row, ok := s.store[key]; ok {
 		return row.val
@@ -42,6 +39,7 @@ func (s EventualStore) Read(key int64) int64 {
 
 	return 0
 }
+
 func (s EventualStore) Update(key int64, value int64, ts util.Timestamp) {
 	if row, ok := s.store[key]; !ok || row.ts.Less(ts) {
 		s.store[key] = timedRow{val: value, ts: ts}

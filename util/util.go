@@ -6,11 +6,7 @@ type Timestamp struct {
 }
 
 func (t Timestamp) Less(o Timestamp) bool {
-	if t.Number < o.Number {
-		return true
-	}
-
-	if t.Number == o.Number && t.Rid < o.Rid {
+	if t.Number < o.Number || (t.Number == o.Number && t.Rid < o.Rid) {
 		return true
 	}
 
@@ -23,4 +19,8 @@ func Max(x, y int64) int64 {
 		return y
 	}
 	return x
+}
+
+type Ticker interface {
+	Periodically()
 }
