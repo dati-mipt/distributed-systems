@@ -1,9 +1,13 @@
 package store
 
-import "github.com/dati-mipt/consistency-algorithms/util"
+import (
+	"github.com/dati-mipt/consistency-algorithms/util"
+)
 
-type storeReplica interface {
-	Update(key int64, value int64, ts util.Timestamp)
+type eventualStoreUpdate struct {
+	ts    util.Timestamp
+	key   int64
+	value int64
 }
 
 type EventualStore struct {
@@ -12,7 +16,7 @@ type EventualStore struct {
 
 	store map[int64]timedRow
 
-	replicas []storeReplica
+	replicas []util.Receiver
 }
 
 func (s EventualStore) Write(key int64, value int64) bool {
@@ -26,7 +30,11 @@ func (s EventualStore) Write(key int64, value int64) bool {
 	s.store[key] = timedRow{val: value, ts: ts}
 
 	for _, r := range s.replicas {
-		r.Update(key, value, ts)
+		r.Message(eventualStoreUpdate{
+			ts:    ts,
+			key:   key,
+			value: value,
+		})
 	}
 
 	return true
@@ -40,12 +48,18 @@ func (s EventualStore) Read(key int64) int64 {
 	return 0
 }
 
-func (s EventualStore) Update(key int64, value int64, ts util.Timestamp) {
-	if row, ok := s.store[key]; !ok || row.ts.Less(ts) {
-		s.store[key] = timedRow{val: value, ts: ts}
+func (s EventualStore) Message(msg interface{}) {
+	if cast, ok := msg.(eventualStoreUpdate); ok {
+		s.update(cast)
+	}
+}
+
+func (s EventualStore) update(u eventualStoreUpdate) {
+	if row, ok := s.store[u.key]; !ok || row.ts.Less(u.ts) {
+		s.store[u.key] = timedRow{val: u.value, ts: u.ts}
 	}
 
-	if s.localClock < ts.Number {
-		s.localClock = ts.Number
+	if s.localClock < u.ts.Number {
+		s.localClock = u.ts.Number
 	}
 }

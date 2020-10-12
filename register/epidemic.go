@@ -2,8 +2,9 @@ package register
 
 import "github.com/dati-mipt/consistency-algorithms/util"
 
-type LatestValueReplica interface {
-	Latest(value int64, ts util.Timestamp)
+type timestampedValue struct {
+	value int64
+	ts    util.Timestamp
 }
 
 type EpidemicRegister struct {
@@ -12,7 +13,7 @@ type EpidemicRegister struct {
 	current int64
 	written util.Timestamp
 
-	replicas []LatestValueReplica
+	replicas []util.Receiver
 }
 
 func (r EpidemicRegister) Write(value int64) bool {
@@ -27,13 +28,19 @@ func (r EpidemicRegister) Read() int64 {
 
 func (r EpidemicRegister) Periodically() {
 	for _, rep := range r.replicas {
-		rep.Latest(r.current, r.written)
+		rep.Message(timestampedValue{r.current, r.written})
 	}
 }
 
-func (r EpidemicRegister) Latest(value int64, ts util.Timestamp) {
-	if r.written.Less(ts) {
-		r.current = value
-		r.written = ts
+func (r EpidemicRegister) Message(msg interface{}) {
+	if cast, ok := msg.(timestampedValue); ok {
+		r.update(cast)
+	}
+}
+
+func (r EpidemicRegister) update(u timestampedValue) {
+	if r.written.Less(u.ts) {
+		r.current = u.value
+		r.written = u.ts
 	}
 }

@@ -2,15 +2,13 @@ package counter
 
 import "github.com/dati-mipt/consistency-algorithms/util"
 
-type IntMapReplica interface {
-	IntMapMessage(msg map[int64]int64)
-}
+type replicatedCounts map[int64]int64
 
 type EpidemicCounter struct {
 	rid    int64
-	counts map[int64]int64
+	counts replicatedCounts
 
-	replicas []IntMapReplica
+	replicas []util.Receiver
 }
 
 func (c EpidemicCounter) Inc() bool {
@@ -26,14 +24,20 @@ func (c EpidemicCounter) Read() int64 {
 	return sum
 }
 
-func (c EpidemicCounter) IntMapMessage(msg map[int64]int64) {
-	for k, v := range msg {
+func (c EpidemicCounter) Message(msg interface{}) {
+	if cast, ok := msg.(replicatedCounts); ok {
+		c.update(cast)
+	}
+}
+
+func (c EpidemicCounter) update(u replicatedCounts) {
+	for k, v := range u {
 		c.counts[k] = util.Max(c.counts[k], v)
 	}
 }
 
 func (c EpidemicCounter) Periodically() {
 	for _, r := range c.replicas {
-		r.IntMapMessage(c.counts)
+		r.Message(c.counts)
 	}
 }

@@ -21,6 +21,10 @@ func Max(x, y int64) int64 {
 	return x
 }
 
+type Receiver interface {
+	Message(interface{})
+}
+
 type Ticker interface {
 	Periodically()
 }

@@ -9,10 +9,6 @@ type causalStoreUpdate struct {
 	deps  map[int64]util.Timestamp
 }
 
-type causalStoreReplica interface {
-	update(u causalStoreUpdate)
-}
-
 type inBuffer struct {
 	updates       []causalStoreUpdate
 	lastProcessed int64
@@ -52,7 +48,7 @@ type CausalStore struct {
 	buffers map[int64]inBuffer
 	deps    map[int64]util.Timestamp
 
-	replicas []causalStoreReplica
+	replicas []util.Receiver
 }
 
 func (s CausalStore) Write(key int64, value int64) bool {
@@ -68,7 +64,7 @@ func (s CausalStore) Write(key int64, value int64) bool {
 	s.store[key] = timedRow{val: value, ts: ts}
 
 	for _, r := range s.replicas {
-		r.update(causalStoreUpdate{
+		r.Message(causalStoreUpdate{
 			ts:    ts,
 			key:   key,
 			value: value,
@@ -85,6 +81,12 @@ func (s CausalStore) Read(key int64) int64 {
 	}
 
 	return 0
+}
+
+func (s CausalStore) Message(msg interface{}) {
+	if cast, ok := msg.(causalStoreUpdate); ok {
+		s.update(cast)
+	}
 }
 
 func (s CausalStore) update(u causalStoreUpdate) {

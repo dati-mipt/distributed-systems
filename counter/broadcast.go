@@ -1,19 +1,17 @@
 package counter
 
-type IncrementalReplica interface {
-	IncMessage()
-}
+import "github.com/dati-mipt/consistency-algorithms/util"
 
 type BroadcastCounter struct {
 	current int64
 
-	replicas []IncrementalReplica
+	replicas []util.Receiver
 }
 
 func (c BroadcastCounter) Inc() bool {
 	c.current++
 	for _, p := range c.replicas {
-		p.IncMessage()
+		p.Message(struct{}{})
 	}
 	return true
 }
@@ -22,6 +20,6 @@ func (c BroadcastCounter) Read() int64 {
 	return c.current
 }
 
-func (c BroadcastCounter) IncMessage() {
+func (c BroadcastCounter) Message(interface{}) {
 	c.current++
 }
