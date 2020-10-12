@@ -3,9 +3,8 @@ package store
 import "github.com/dati-mipt/consistency-algorithms/util"
 
 type causalStoreUpdate struct {
-	ts    util.Timestamp
 	key   int64
-	value int64
+	value util.TimestampedValue
 	deps  map[int64]util.Timestamp
 }
 
@@ -44,7 +43,7 @@ type CausalStore struct {
 	rid        int64
 	localClock int64
 
-	store   map[int64]timedRow
+	store   map[int64]util.TimestampedValue
 	buffers map[int64]inBuffer
 	deps    map[int64]util.Timestamp
 
@@ -56,18 +55,20 @@ func (s CausalStore) Write(key int64, value int64) bool {
 	updates.lastProcessed++
 	s.buffers[s.rid] = updates
 
-	var ts = util.Timestamp{
-		Number: s.buffers[s.rid].lastProcessed,
-		Rid:    s.rid,
+	var tValue = util.TimestampedValue{
+		Val: value,
+		Ts: util.Timestamp{
+			Number: s.localClock,
+			Rid:    s.rid,
+		},
 	}
 
-	s.store[key] = timedRow{val: value, ts: ts}
+	s.store[key] = tValue
 
 	for _, r := range s.replicas {
 		r.Message(causalStoreUpdate{
-			ts:    ts,
 			key:   key,
-			value: value,
+			value: tValue,
 			deps:  s.deps,
 		})
 	}
@@ -77,7 +78,7 @@ func (s CausalStore) Write(key int64, value int64) bool {
 
 func (s CausalStore) Read(key int64) int64 {
 	if row, ok := s.store[key]; ok {
-		return row.val
+		return row.Val
 	}
 
 	return 0
@@ -90,9 +91,9 @@ func (s CausalStore) Message(msg interface{}) {
 }
 
 func (s CausalStore) update(u causalStoreUpdate) {
-	var buffer = s.buffers[u.ts.Rid]
+	var buffer = s.buffers[u.value.Ts.Rid]
 	buffer.enqueue(u)
-	s.buffers[u.ts.Rid] = buffer
+	s.buffers[u.value.Ts.Rid] = buffer
 }
 
 func (s CausalStore) readyToApply(u causalStoreUpdate) bool {
@@ -111,14 +112,14 @@ func (s CausalStore) Periodically() {
 		if !buffer.empty() && s.readyToApply(buffer.last()) {
 			var u = buffer.dequeue()
 
-			if row, ok := s.store[u.key]; !ok || row.ts.Less(u.ts) {
-				s.store[u.key] = timedRow{val: u.value, ts: u.ts}
+			if row, ok := s.store[u.key]; !ok || row.Ts.Less(u.value.Ts) {
+				s.store[u.key] = row
 			}
 
-			buffer.lastProcessed = u.ts.Number
+			buffer.lastProcessed = u.value.Ts.Number
 
-			if u.ts.Number > buffer.lastProcessed { //keep up with time
-				buffer.lastProcessed = u.ts.Number
+			if u.value.Ts.Number > buffer.lastProcessed { //keep up with time
+				buffer.lastProcessed = u.value.Ts.Number
 			}
 
 			s.buffers[rid] = buffer

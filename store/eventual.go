@@ -5,16 +5,15 @@ import (
 )
 
 type eventualStoreUpdate struct {
-	ts    util.Timestamp
 	key   int64
-	value int64
+	value util.TimestampedValue
 }
 
 type EventualStore struct {
 	rid        int64
 	localClock int64
 
-	store map[int64]timedRow
+	store map[int64]util.TimestampedValue
 
 	replicas []util.Receiver
 }
@@ -22,18 +21,20 @@ type EventualStore struct {
 func (s EventualStore) Write(key int64, value int64) bool {
 	s.localClock++
 
-	var ts = util.Timestamp{
-		Number: s.localClock,
-		Rid:    s.rid,
+	var tValue = util.TimestampedValue{
+		Val: value,
+		Ts: util.Timestamp{
+			Number: s.localClock,
+			Rid:    s.rid,
+		},
 	}
 
-	s.store[key] = timedRow{val: value, ts: ts}
+	s.store[key] = tValue
 
 	for _, r := range s.replicas {
 		r.Message(eventualStoreUpdate{
-			ts:    ts,
 			key:   key,
-			value: value,
+			value: tValue,
 		})
 	}
 
@@ -42,7 +43,7 @@ func (s EventualStore) Write(key int64, value int64) bool {
 
 func (s EventualStore) Read(key int64) int64 {
 	if row, ok := s.store[key]; ok {
-		return row.val
+		return row.Val
 	}
 
 	return 0
@@ -55,11 +56,11 @@ func (s EventualStore) Message(msg interface{}) {
 }
 
 func (s EventualStore) update(u eventualStoreUpdate) {
-	if row, ok := s.store[u.key]; !ok || row.ts.Less(u.ts) {
-		s.store[u.key] = timedRow{val: u.value, ts: u.ts}
+	if row, ok := s.store[u.key]; !ok || row.Ts.Less(u.value.Ts) {
+		s.store[u.key] = u.value
 	}
 
-	if s.localClock < u.ts.Number {
-		s.localClock = u.ts.Number
+	if s.localClock < u.value.Ts.Number {
+		s.localClock = u.value.Ts.Number
 	}
 }

@@ -13,6 +13,11 @@ func (t Timestamp) Less(o Timestamp) bool {
 	return false
 }
 
+type TimestampedValue struct {
+	Val int64
+	Ts  Timestamp
+}
+
 // Max returns the larger of x or y.
 func Max(x, y int64) int64 {
 	if x < y {
