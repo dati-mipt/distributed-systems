@@ -1,6 +1,6 @@
 package register
 
-import "github.com/dati-mipt/consistency-algorithms/util"
+import "github.com/dati-mipt/distributed-algorithms/util"
 
 type EpidemicRegister struct {
 	rid int64

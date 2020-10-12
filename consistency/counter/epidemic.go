@@ -1,6 +1,6 @@
 package counter
 
-import "github.com/dati-mipt/consistency-algorithms/util"
+import "github.com/dati-mipt/distributed-algorithms/util"
 
 type replicatedCounts map[int64]int64
 

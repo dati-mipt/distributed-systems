@@ -1,1 +1,1 @@
-package consistency_algorithms
+package main

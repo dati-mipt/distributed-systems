@@ -1,7 +1,7 @@
 package store
 
 import (
-	"github.com/dati-mipt/consistency-algorithms/util"
+	"github.com/dati-mipt/distributed-algorithms/util"
 )
 
 type eventualStoreUpdate struct {
