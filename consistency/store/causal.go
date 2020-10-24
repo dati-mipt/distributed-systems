@@ -47,7 +47,7 @@ type CausalStore struct {
 	buffers map[int64]inBuffer
 	deps    map[int64]util.Timestamp
 
-	replicas []util.Receiver
+	replicas []util.Peer
 }
 
 func (s CausalStore) Write(key int64, value int64) bool {

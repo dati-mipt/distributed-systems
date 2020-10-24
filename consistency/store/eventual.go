@@ -15,7 +15,7 @@ type EventualStore struct {
 
 	store map[int64]util.TimestampedValue
 
-	replicas []util.Receiver
+	replicas []util.Peer
 }
 
 func (s EventualStore) Write(key int64, value int64) bool {
