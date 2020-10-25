@@ -1,6 +1,7 @@
 package store
 
 import (
+	"github.com/dati-mipt/distributed-algorithms/network"
 	"github.com/dati-mipt/distributed-algorithms/util"
 )
 
@@ -15,7 +16,7 @@ type EventualStore struct {
 
 	store map[int64]util.TimestampedValue
 
-	replicas []util.Peer
+	replicas []network.Peer
 }
 
 func (s EventualStore) Write(key int64, value int64) bool {
@@ -32,7 +33,7 @@ func (s EventualStore) Write(key int64, value int64) bool {
 	s.store[key] = tValue
 
 	for _, r := range s.replicas {
-		r.Message(eventualStoreUpdate{
+		r.AsyncMessage(eventualStoreUpdate{
 			key:   key,
 			value: tValue,
 		})

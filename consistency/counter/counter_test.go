@@ -18,7 +18,7 @@ func (c *mockCounter) Read() int64 {
 	return c.current
 }
 
-func TestGenericCounterOperations(t *testing.T) {
+func TestGenericOperations(t *testing.T) {
 	var mock = mockCounter{}
 	var broadcast = BroadcastCounter{}
 	var epidemic = EpidemicCounter{

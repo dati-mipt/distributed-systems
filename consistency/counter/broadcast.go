@@ -1,17 +1,19 @@
 package counter
 
-import "github.com/dati-mipt/distributed-algorithms/util"
+import (
+	"github.com/dati-mipt/distributed-algorithms/network"
+)
 
 type BroadcastCounter struct {
 	current int64
 
-	replicas []util.Peer
+	replicas []network.Peer
 }
 
 func (c *BroadcastCounter) Inc() bool {
 	c.current++
 	for _, p := range c.replicas {
-		p.Message(struct{}{})
+		p.AsyncMessage(struct{}{})
 	}
 	return true
 }
@@ -20,6 +22,6 @@ func (c *BroadcastCounter) Read() int64 {
 	return c.current
 }
 
-func (c *BroadcastCounter) Message(interface{}) {
+func (c *BroadcastCounter) AsyncMessage(interface{}) {
 	c.current++
 }

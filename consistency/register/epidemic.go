@@ -1,13 +1,16 @@
 package register
 
-import "github.com/dati-mipt/distributed-algorithms/util"
+import (
+	"github.com/dati-mipt/distributed-algorithms/network"
+	"github.com/dati-mipt/distributed-algorithms/util"
+)
 
 type EpidemicRegister struct {
 	rid int64
 
 	current util.TimestampedValue
 
-	replicas []util.Peer
+	replicas []network.Peer
 }
 
 func (r *EpidemicRegister) Write(value int64) bool {
@@ -22,11 +25,11 @@ func (r *EpidemicRegister) Read() int64 {
 
 func (r *EpidemicRegister) Periodically() {
 	for _, rep := range r.replicas {
-		rep.Message(r.current)
+		rep.AsyncMessage(r.current)
 	}
 }
 
-func (r *EpidemicRegister) Message(msg interface{}) {
+func (r *EpidemicRegister) AsyncMessage(msg interface{}) {
 	if cast, ok := msg.(util.TimestampedValue); ok {
 		r.update(cast)
 	}

@@ -26,14 +26,6 @@ func Max(x, y int64) int64 {
 	return x
 }
 
-type Peer interface {
-	Message(interface{})
-}
-
-type Responder interface {
-	SendAndWaitForResponse(interface{}) interface{}
-}
-
 type Ticker interface {
 	Periodically()
 }

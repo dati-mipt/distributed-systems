@@ -1,6 +1,9 @@
 package store
 
-import "github.com/dati-mipt/distributed-algorithms/util"
+import (
+	"github.com/dati-mipt/distributed-algorithms/network"
+	"github.com/dati-mipt/distributed-algorithms/util"
+)
 
 type causalStoreUpdate struct {
 	key   int64
@@ -47,7 +50,7 @@ type CausalStore struct {
 	buffers map[int64]inBuffer
 	deps    map[int64]util.Timestamp
 
-	replicas []util.Peer
+	replicas []network.Peer
 }
 
 func (s CausalStore) Write(key int64, value int64) bool {
@@ -66,7 +69,7 @@ func (s CausalStore) Write(key int64, value int64) bool {
 	s.store[key] = tValue
 
 	for _, r := range s.replicas {
-		r.Message(causalStoreUpdate{
+		r.AsyncMessage(causalStoreUpdate{
 			key:   key,
 			value: tValue,
 			deps:  s.deps,

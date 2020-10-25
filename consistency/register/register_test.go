@@ -18,7 +18,7 @@ func (r *mockRegister) Read() int64 {
 	return r.current
 }
 
-func TestGenericCounterOperations(t *testing.T) {
+func TestGenericOperations(t *testing.T) {
 	var mock = mockRegister{}
 	var epidemic = EpidemicRegister{}
 
@@ -28,7 +28,7 @@ func TestGenericCounterOperations(t *testing.T) {
 
 		var read = reg.Read()
 		if read != expected {
-			return fmt.Errorf("wrong counter value, got: %v, expected %v", read, expected)
+			return fmt.Errorf("wrong register value, got: %v, expected %v", read, expected)
 		}
 
 		return nil

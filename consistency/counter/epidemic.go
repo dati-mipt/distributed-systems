@@ -1,6 +1,9 @@
 package counter
 
-import "github.com/dati-mipt/distributed-algorithms/util"
+import (
+	"github.com/dati-mipt/distributed-algorithms/network"
+	"github.com/dati-mipt/distributed-algorithms/util"
+)
 
 type replicatedCounts map[int64]int64
 
@@ -8,7 +11,7 @@ type EpidemicCounter struct {
 	rid    int64
 	counts replicatedCounts
 
-	replicas []util.Peer
+	replicas []network.Peer
 }
 
 func (c *EpidemicCounter) Inc() bool {
@@ -24,7 +27,7 @@ func (c *EpidemicCounter) Read() int64 {
 	return sum
 }
 
-func (c *EpidemicCounter) Message(msg interface{}) {
+func (c *EpidemicCounter) AsyncMessage(msg interface{}) {
 	if cast, ok := msg.(replicatedCounts); ok {
 		c.update(cast)
 	}
@@ -38,6 +41,6 @@ func (c *EpidemicCounter) update(u replicatedCounts) {
 
 func (c *EpidemicCounter) Periodically() {
 	for _, r := range c.replicas {
-		r.Message(c.counts)
+		r.AsyncMessage(c.counts)
 	}
 }
