@@ -19,7 +19,7 @@ type EventualStore struct {
 	replicas []network.Peer
 }
 
-func (s EventualStore) Write(key int64, value int64) bool {
+func (s *EventualStore) Write(key int64, value int64) bool {
 	s.localClock++
 
 	var tValue = util.TimestampedValue{
@@ -42,7 +42,7 @@ func (s EventualStore) Write(key int64, value int64) bool {
 	return true
 }
 
-func (s EventualStore) Read(key int64) int64 {
+func (s *EventualStore) Read(key int64) int64 {
 	if row, ok := s.store[key]; ok {
 		return row.Val
 	}
@@ -50,13 +50,14 @@ func (s EventualStore) Read(key int64) int64 {
 	return 0
 }
 
-func (s EventualStore) Message(msg interface{}) {
+func (s *EventualStore) ReceiveMessage(rid int64, msg interface{}) interface{} {
 	if cast, ok := msg.(eventualStoreUpdate); ok {
 		s.update(cast)
 	}
+	return nil
 }
 
-func (s EventualStore) update(u eventualStoreUpdate) {
+func (s *EventualStore) update(u eventualStoreUpdate) {
 	if row, ok := s.store[u.key]; !ok || row.Ts.Less(u.value.Ts) {
 		s.store[u.key] = u.value
 	}

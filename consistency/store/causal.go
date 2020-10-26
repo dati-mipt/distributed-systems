@@ -53,7 +53,7 @@ type CausalStore struct {
 	replicas []network.Peer
 }
 
-func (s CausalStore) Write(key int64, value int64) bool {
+func (s *CausalStore) Write(key int64, value int64) bool {
 	var updates = s.buffers[s.rid]
 	updates.lastProcessed++
 	s.buffers[s.rid] = updates
@@ -79,7 +79,7 @@ func (s CausalStore) Write(key int64, value int64) bool {
 	return true
 }
 
-func (s CausalStore) Read(key int64) int64 {
+func (s *CausalStore) Read(key int64) int64 {
 	if row, ok := s.store[key]; ok {
 		return row.Val
 	}
@@ -87,19 +87,20 @@ func (s CausalStore) Read(key int64) int64 {
 	return 0
 }
 
-func (s CausalStore) Message(msg interface{}) {
+func (s *CausalStore) ReceiveMessage(rid int64, msg interface{}) interface{} {
 	if cast, ok := msg.(causalStoreUpdate); ok {
 		s.update(cast)
 	}
+	return nil
 }
 
-func (s CausalStore) update(u causalStoreUpdate) {
+func (s *CausalStore) update(u causalStoreUpdate) {
 	var buffer = s.buffers[u.value.Ts.Rid]
 	buffer.enqueue(u)
 	s.buffers[u.value.Ts.Rid] = buffer
 }
 
-func (s CausalStore) readyToApply(u causalStoreUpdate) bool {
+func (s *CausalStore) readyToApply(u causalStoreUpdate) bool {
 	var ready = true
 	for _, ts := range u.deps {
 		if s.buffers[ts.Rid].lastProcessed <= ts.Number {
@@ -110,7 +111,7 @@ func (s CausalStore) readyToApply(u causalStoreUpdate) bool {
 	return ready
 }
 
-func (s CausalStore) Periodically() {
+func (s *CausalStore) Periodically() {
 	for rid, buffer := range s.buffers {
 		if !buffer.empty() && s.readyToApply(buffer.last()) {
 			var u = buffer.dequeue()

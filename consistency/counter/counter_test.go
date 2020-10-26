@@ -41,7 +41,7 @@ func TestGenericOperations(t *testing.T) {
 
 	for _, c := range []Counter{&mock, &broadcast, &epidemic} {
 		if err := singleCopyIncCheck(c); err != nil {
-			t.Errorf("filed single copy API test for %T: %v", c, err)
+			t.Errorf("failed single copy API test for %T: %v", c, err)
 		}
 	}
 }
