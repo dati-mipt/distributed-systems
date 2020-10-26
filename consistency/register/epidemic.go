@@ -29,10 +29,11 @@ func (r *EpidemicRegister) Periodically() {
 	}
 }
 
-func (r *EpidemicRegister) AsyncMessage(msg interface{}) {
+func (r *EpidemicRegister) ReceiveMessage(rid int64, msg interface{}) interface{} {
 	if cast, ok := msg.(util.TimestampedValue); ok {
 		r.update(cast)
 	}
+	return nil
 }
 
 func (r *EpidemicRegister) update(u util.TimestampedValue) {

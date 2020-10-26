@@ -22,6 +22,7 @@ func (c *BroadcastCounter) Read() int64 {
 	return c.current
 }
 
-func (c *BroadcastCounter) AsyncMessage(interface{}) {
+func (c *BroadcastCounter) ReceiveMessage(rid int64, msg interface{}) interface{} {
 	c.current++
+	return nil
 }

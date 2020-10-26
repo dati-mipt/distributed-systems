@@ -27,10 +27,11 @@ func (c *EpidemicCounter) Read() int64 {
 	return sum
 }
 
-func (c *EpidemicCounter) AsyncMessage(msg interface{}) {
+func (c *EpidemicCounter) ReceiveMessage(rid int64, msg interface{}) interface{} {
 	if cast, ok := msg.(replicatedCounts); ok {
 		c.update(cast)
 	}
+	return nil
 }
 
 func (c *EpidemicCounter) update(u replicatedCounts) {

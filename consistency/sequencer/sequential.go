@@ -5,17 +5,18 @@ import (
 )
 
 type SequentialServer struct {
-	clients []network.Peer
+	clients map[int64]network.Peer
 }
 
-func (s SequentialServer) BlockingMessage(msg interface{}) interface{} {
-	if op, ok := msg.(Operation); ok {
-		for _, c := range s.clients {
-			c.AsyncMessage(op)
-		}
+func (s SequentialServer) ReceiveMessage(rid int64, msg interface{}) interface{} {
+	var recipientList = s.clients
+	delete(recipientList, rid)
+
+	for _, c := range recipientList {
+		c.AsyncMessage(msg)
 	}
 
-	return nil
+	return true
 }
 
 type SequentialClient struct {
@@ -37,8 +38,9 @@ func (c SequentialClient) Perform(op Operation) OperationResult {
 	return nil
 }
 
-func (c SequentialClient) AsyncMessage(msg interface{}) {
+func (c SequentialClient) ReceiveMessage(rid int64, msg interface{}) interface{} {
 	if op, ok := msg.(Operation); ok {
 		c.confirmed = append(c.confirmed, op)
 	}
+	return nil
 }

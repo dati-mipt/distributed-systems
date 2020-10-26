@@ -8,12 +8,14 @@ type AsyncServer struct {
 	clients []network.Peer
 }
 
-func (s AsyncServer) AsyncMessage(msg interface{}) {
+func (s AsyncServer) ReceiveMessage(rid int64, msg interface{}) interface{} {
 	if op, ok := msg.(Operation); ok {
 		for _, c := range s.clients {
 			c.AsyncMessage(op)
 		}
 	}
+
+	return nil
 }
 
 type AsyncClient struct {
@@ -33,8 +35,9 @@ func (c AsyncClient) Perform(op Operation) OperationResult {
 	return nil
 }
 
-func (c AsyncClient) AsyncMessage(msg interface{}) {
+func (c AsyncClient) ReceiveMessage(rid int64, msg interface{}) interface{} {
 	if op, ok := msg.(Operation); ok {
 		c.confirmed = append(c.confirmed, op)
 	}
+	return nil
 }

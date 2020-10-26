@@ -8,25 +8,28 @@ type SingleCopyRegisterServer struct {
 	current int64
 }
 
-func (s *SingleCopyRegisterServer) BlockingMessage(msg interface{}) interface{} {
+func (s *SingleCopyRegisterServer) ReceiveMessage(rid int64, msg interface{}) interface{} {
 	if msg == nil {
-		return s.current
+		return nil
 	}
 
-	if value, ok := msg.(int64); ok {
+	switch value := msg.(type) {
+	case int64:
 		s.current = value
 		return true
+	case struct{}:
+		return s.current
 	}
 
 	return nil
 }
 
 type SingleCopyRegisterClient struct {
-	s network.Responder
+	server network.Responder
 }
 
 func (c SingleCopyRegisterClient) Write(value int64) bool {
-	if msg, ok := c.s.BlockingMessage(value).(bool); ok {
+	if msg, ok := c.server.BlockingMessage(value).(bool); ok {
 		return msg
 	}
 
@@ -34,7 +37,7 @@ func (c SingleCopyRegisterClient) Write(value int64) bool {
 }
 
 func (c SingleCopyRegisterClient) Read() int64 {
-	if msg, ok := c.s.BlockingMessage(nil).(int64); ok {
+	if msg, ok := c.server.BlockingMessage(nil).(int64); ok {
 		return msg
 	}
 
