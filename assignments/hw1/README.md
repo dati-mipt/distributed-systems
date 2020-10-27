@@ -1,5 +1,5 @@
 # Home Assignment 1
 
-##Description
+## Description
 
 Implement fault-tolerant linear register.
