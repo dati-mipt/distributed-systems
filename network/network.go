@@ -11,8 +11,3 @@ type Responder interface {
 type Receiver interface {
 	ReceiveMessage(dst int64, msg interface{}) interface{}
 }
-
-type BlockingMessage struct {
-	Pid int64
-	Msg interface{}
-}
