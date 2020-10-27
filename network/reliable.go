@@ -36,22 +36,29 @@ type ReliableNetwork struct {
 
 func NewReliableNetwork() *ReliableNetwork {
 	return &ReliableNetwork{
-		peers: map[int64]Peer{},
+		peers:    map[int64]Peer{},
+		messages: make(chan Message, 10),
 	}
 }
 
-func (n *ReliableNetwork) Register(newRid int64, newPeer Peer) {
+func (n *ReliableNetwork) Register(newPid int64, newPeer Peer) {
 	if newPeer == nil {
 		return
 	}
 
+	if _, ok := n.peers[newPid]; ok {
+		return
+	}
+
 	for exRid, exPeer := range n.peers {
-		var linkToExisting = newReliableLink(n, newRid, exRid)
+		var linkToExisting = newReliableLink(n, newPid, exRid)
 		newPeer.Introduce(exRid, linkToExisting)
 
-		var linkToNew = newReliableLink(n, exRid, newRid)
-		exPeer.Introduce(newRid, linkToNew)
+		var linkToNew = newReliableLink(n, exRid, newPid)
+		exPeer.Introduce(newPid, linkToNew)
 	}
+
+	n.peers[newPid] = newPeer
 }
 
 func (n *ReliableNetwork) Route() {
