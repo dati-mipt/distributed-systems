@@ -6,11 +6,9 @@ import (
 )
 
 type EpidemicRegister struct {
-	rid int64
-
-	current util.TimestampedValue
-
-	replicas []network.Peer
+	rid      int64
+	current  util.TimestampedValue
+	replicas []network.Link
 }
 
 func (r *EpidemicRegister) Write(value int64) bool {
@@ -29,7 +27,7 @@ func (r *EpidemicRegister) Periodically() {
 	}
 }
 
-func (r *EpidemicRegister) ReceiveMessage(rid int64, msg interface{}) interface{} {
+func (r *EpidemicRegister) Receive(rid int64, msg interface{}) interface{} {
 	if cast, ok := msg.(util.TimestampedValue); ok {
 		r.update(cast)
 	}
@@ -39,5 +37,11 @@ func (r *EpidemicRegister) ReceiveMessage(rid int64, msg interface{}) interface{
 func (r *EpidemicRegister) update(u util.TimestampedValue) {
 	if r.current.Ts.Less(u.Ts) {
 		r.current = u
+	}
+}
+
+func (r *EpidemicRegister) Introduce(rid int64, link network.Link) {
+	if link != nil {
+		r.replicas[rid] = link
 	}
 }

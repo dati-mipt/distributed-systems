@@ -5,10 +5,10 @@ import (
 )
 
 type SequentialServer struct {
-	clients map[int64]network.Peer
+	clients map[int64]network.Link
 }
 
-func (s SequentialServer) ReceiveMessage(rid int64, msg interface{}) interface{} {
+func (s *SequentialServer) Receive(rid int64, msg interface{}) interface{} {
 	var recipientList = s.clients
 	delete(recipientList, rid)
 
@@ -19,13 +19,19 @@ func (s SequentialServer) ReceiveMessage(rid int64, msg interface{}) interface{}
 	return true
 }
 
+func (s *SequentialServer) Introduce(rid int64, link network.Link) {
+	if rid != 0 && link != nil {
+		s.clients[rid] = link
+	}
+}
+
 type SequentialClient struct {
 	dataType  ReplicatedDataType
 	confirmed []Operation
-	server    network.Responder
+	server    network.Link
 }
 
-func (c SequentialClient) Perform(op Operation) OperationResult {
+func (c *SequentialClient) Perform(op Operation) OperationResult {
 	if c.dataType.IsReadOnly(op) {
 		c.dataType.ComputeResult(op, c.confirmed)
 	} else {
@@ -38,9 +44,15 @@ func (c SequentialClient) Perform(op Operation) OperationResult {
 	return nil
 }
 
-func (c SequentialClient) ReceiveMessage(rid int64, msg interface{}) interface{} {
+func (c *SequentialClient) Receive(rid int64, msg interface{}) interface{} {
 	if op, ok := msg.(Operation); ok {
 		c.confirmed = append(c.confirmed, op)
 	}
 	return nil
+}
+
+func (c *SequentialClient) Introduce(rid int64, link network.Link) {
+	if rid == 0 && link != nil {
+		c.server = link
+	}
 }

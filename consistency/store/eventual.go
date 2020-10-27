@@ -16,7 +16,7 @@ type EventualStore struct {
 
 	store map[int64]util.TimestampedValue
 
-	replicas []network.Peer
+	peers []network.Link
 }
 
 func (s *EventualStore) Write(key int64, value int64) bool {
@@ -32,7 +32,7 @@ func (s *EventualStore) Write(key int64, value int64) bool {
 
 	s.store[key] = tValue
 
-	for _, r := range s.replicas {
+	for _, r := range s.peers {
 		r.AsyncMessage(eventualStoreUpdate{
 			key:   key,
 			value: tValue,
@@ -50,7 +50,7 @@ func (s *EventualStore) Read(key int64) int64 {
 	return 0
 }
 
-func (s *EventualStore) ReceiveMessage(rid int64, msg interface{}) interface{} {
+func (s *EventualStore) Receive(rid int64, msg interface{}) interface{} {
 	if cast, ok := msg.(eventualStoreUpdate); ok {
 		s.update(cast)
 	}
@@ -64,5 +64,11 @@ func (s *EventualStore) update(u eventualStoreUpdate) {
 
 	if s.localClock < u.value.Ts.Number {
 		s.localClock = u.value.Ts.Number
+	}
+}
+
+func (s *EventualStore) Introduce(rid int64, link network.Link) {
+	if rid != 0 && link != nil {
+		s.peers[rid] = link
 	}
 }

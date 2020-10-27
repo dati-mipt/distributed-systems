@@ -5,10 +5,10 @@ import (
 )
 
 type AsyncSequencerServer struct {
-	clients []network.Peer
+	clients map[int64]network.Link
 }
 
-func (s *AsyncSequencerServer) ReceiveMessage(rid int64, msg interface{}) interface{} {
+func (s *AsyncSequencerServer) Receive(rid int64, msg interface{}) interface{} {
 	if op, ok := msg.(Operation); ok {
 		for _, c := range s.clients {
 			c.AsyncMessage(op)
@@ -18,10 +18,16 @@ func (s *AsyncSequencerServer) ReceiveMessage(rid int64, msg interface{}) interf
 	return nil
 }
 
+func (s *AsyncSequencerServer) Introduce(rid int64, link network.Link) {
+	if rid != 0 && link != nil {
+		s.clients[rid] = link
+	}
+}
+
 type AsyncSequencerClient struct {
 	dataType  ReplicatedDataType
 	confirmed []Operation
-	server    network.Peer
+	server    network.Link
 }
 
 func (c *AsyncSequencerClient) Perform(op Operation) OperationResult {
@@ -35,9 +41,15 @@ func (c *AsyncSequencerClient) Perform(op Operation) OperationResult {
 	return nil
 }
 
-func (c *AsyncSequencerClient) ReceiveMessage(rid int64, msg interface{}) interface{} {
+func (c *AsyncSequencerClient) Receive(rid int64, msg interface{}) interface{} {
 	if op, ok := msg.(Operation); ok {
 		c.confirmed = append(c.confirmed, op)
 	}
 	return nil
+}
+
+func (c *AsyncSequencerClient) Introduce(rid int64, link network.Link) {
+	if rid == 0 && link != nil {
+		c.server = link
+	}
 }

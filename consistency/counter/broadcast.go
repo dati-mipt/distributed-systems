@@ -7,7 +7,7 @@ import (
 type BroadcastCounter struct {
 	current int64
 
-	replicas []network.Peer
+	replicas []network.Link
 }
 
 func (c *BroadcastCounter) Inc() bool {
@@ -22,7 +22,13 @@ func (c *BroadcastCounter) Read() int64 {
 	return c.current
 }
 
-func (c *BroadcastCounter) ReceiveMessage(rid int64, msg interface{}) interface{} {
+func (c *BroadcastCounter) Receive(rid int64, msg interface{}) interface{} {
 	c.current++
 	return nil
+}
+
+func (c *BroadcastCounter) Introduce(rid int64, link network.Link) {
+	if link != nil {
+		c.replicas[rid] = link
+	}
 }

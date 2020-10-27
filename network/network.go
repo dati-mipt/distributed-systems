@@ -1,13 +1,11 @@
 package network
 
-type Peer interface {
+type Link interface {
 	AsyncMessage(interface{})
-}
-
-type Responder interface {
 	BlockingMessage(interface{}) interface{}
 }
 
-type Receiver interface {
-	ReceiveMessage(dst int64, msg interface{}) interface{}
+type Peer interface {
+	Receive(src int64, msg interface{}) interface{}
+	Introduce(rid int64, link Link)
 }
