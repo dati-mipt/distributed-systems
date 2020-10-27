@@ -1,8 +1,8 @@
 package store
 
 import (
-	"github.com/dati-mipt/distributed-algorithms/network"
-	"github.com/dati-mipt/distributed-algorithms/util"
+	"github.com/dati-mipt/distributed-storage-algorithms/network"
+	"github.com/dati-mipt/distributed-storage-algorithms/util"
 )
 
 type eventualStoreUpdate struct {
