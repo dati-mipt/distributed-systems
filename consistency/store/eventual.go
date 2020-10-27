@@ -50,25 +50,21 @@ func (s *EventualStore) Read(key int64) int64 {
 	return 0
 }
 
-func (s *EventualStore) Receive(rid int64, msg interface{}) interface{} {
-	if cast, ok := msg.(eventualStoreUpdate); ok {
-		s.update(cast)
-	}
-	return nil
-}
-
-func (s *EventualStore) update(u eventualStoreUpdate) {
-	if row, ok := s.store[u.key]; !ok || row.Ts.Less(u.value.Ts) {
-		s.store[u.key] = u.value
-	}
-
-	if s.localClock < u.value.Ts.Number {
-		s.localClock = u.value.Ts.Number
-	}
-}
-
 func (s *EventualStore) Introduce(rid int64, link network.Link) {
 	if rid != 0 && link != nil {
 		s.peers[rid] = link
 	}
+}
+
+func (s *EventualStore) Receive(rid int64, msg interface{}) interface{} {
+	if update, ok := msg.(eventualStoreUpdate); ok {
+		if row, ok := s.store[update.key]; !ok || row.Ts.Less(update.value.Ts) {
+			s.store[update.key] = update.value
+		}
+
+		if s.localClock < update.value.Ts.Number {
+			s.localClock = update.value.Ts.Number
+		}
+	}
+	return nil
 }

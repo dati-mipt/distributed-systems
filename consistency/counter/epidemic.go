@@ -34,23 +34,19 @@ func (c *EpidemicCounter) Read() int64 {
 	return sum
 }
 
-func (c *EpidemicCounter) Receive(rid int64, msg interface{}) interface{} {
-	if cast, ok := msg.(replicatedCounts); ok {
-		c.update(cast)
-	}
-	return nil
-}
-
-func (c *EpidemicCounter) update(u replicatedCounts) {
-	for k, v := range u {
-		c.counts[k] = util.Max(c.counts[k], v)
-	}
-}
-
 func (c *EpidemicCounter) Introduce(rid int64, link network.Link) {
 	if link != nil {
 		c.replicas[rid] = link
 	}
+}
+
+func (c *EpidemicCounter) Receive(rid int64, msg interface{}) interface{} {
+	if update, ok := msg.(replicatedCounts); ok {
+		for k, v := range update {
+			c.counts[k] = util.Max(c.counts[k], v)
+		}
+	}
+	return nil
 }
 
 func (c *EpidemicCounter) Periodically() {

@@ -8,6 +8,8 @@ type SingleCopyRegisterServer struct {
 	current int64
 }
 
+func (s *SingleCopyRegisterServer) Introduce(rid int64, link network.Link) {}
+
 func (s *SingleCopyRegisterServer) Receive(rid int64, msg interface{}) interface{} {
 	if msg == nil {
 		return nil
@@ -23,8 +25,6 @@ func (s *SingleCopyRegisterServer) Receive(rid int64, msg interface{}) interface
 
 	return nil
 }
-
-func (s *SingleCopyRegisterServer) Introduce(rid int64, link network.Link) {}
 
 type SingleCopyRegisterClient struct {
 	server network.Link
@@ -46,12 +46,12 @@ func (c *SingleCopyRegisterClient) Read() int64 {
 	return 0
 }
 
-func (c *SingleCopyRegisterClient) Receive(rid int64, msg interface{}) interface{} {
-	return nil
-}
-
 func (c *SingleCopyRegisterClient) Introduce(rid int64, link network.Link) {
 	if rid == 0 && link != nil {
 		c.server = link
 	}
+}
+
+func (c *SingleCopyRegisterClient) Receive(rid int64, msg interface{}) interface{} {
+	return nil
 }

@@ -8,6 +8,18 @@ type AsyncSequencerServer struct {
 	clients map[int64]network.Link
 }
 
+func NewAsyncSequencerServer() *AsyncSequencerServer {
+	return &AsyncSequencerServer{
+		clients: map[int64]network.Link{},
+	}
+}
+
+func (s *AsyncSequencerServer) Introduce(cid int64, link network.Link) {
+	if cid != 0 && link != nil {
+		s.clients[cid] = link
+	}
+}
+
 func (s *AsyncSequencerServer) Receive(rid int64, msg interface{}) interface{} {
 	if op, ok := msg.(Operation); ok {
 		for _, c := range s.clients {
@@ -16,12 +28,6 @@ func (s *AsyncSequencerServer) Receive(rid int64, msg interface{}) interface{} {
 	}
 
 	return nil
-}
-
-func (s *AsyncSequencerServer) Introduce(rid int64, link network.Link) {
-	if rid != 0 && link != nil {
-		s.clients[rid] = link
-	}
 }
 
 type AsyncSequencerClient struct {
@@ -41,15 +47,15 @@ func (c *AsyncSequencerClient) Perform(op Operation) OperationResult {
 	return nil
 }
 
+func (c *AsyncSequencerClient) Introduce(rid int64, link network.Link) {
+	if rid == 0 && link != nil {
+		c.server = link
+	}
+}
+
 func (c *AsyncSequencerClient) Receive(rid int64, msg interface{}) interface{} {
 	if op, ok := msg.(Operation); ok {
 		c.confirmed = append(c.confirmed, op)
 	}
 	return nil
-}
-
-func (c *AsyncSequencerClient) Introduce(rid int64, link network.Link) {
-	if rid == 0 && link != nil {
-		c.server = link
-	}
 }

@@ -11,3 +11,7 @@ type ReplicatedDataType interface {
 	IsUpdateOnly(op Operation) bool
 	ComputeResult(op Operation, confirmed []Operation) OperationResult
 }
+
+type Sequencer interface {
+	Perform(op Operation) OperationResult
+}

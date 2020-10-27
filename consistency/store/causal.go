@@ -5,6 +5,8 @@ import (
 	"github.com/dati-mipt/distributed-algorithms/util"
 )
 
+// todo: move queue from store module module
+
 type causalStoreUpdate struct {
 	key   int64
 	value util.TimestampedValue
@@ -50,7 +52,7 @@ type CausalStore struct {
 	buffers map[int64]inBuffer
 	deps    map[int64]util.Timestamp
 
-	peers map[int64]network.Link
+	replicas map[int64]network.Link
 }
 
 func (s *CausalStore) Write(key int64, value int64) bool {
@@ -68,7 +70,7 @@ func (s *CausalStore) Write(key int64, value int64) bool {
 
 	s.store[key] = tValue
 
-	for _, r := range s.peers {
+	for _, r := range s.replicas {
 		r.AsyncMessage(causalStoreUpdate{
 			key:   key,
 			value: tValue,
@@ -87,23 +89,19 @@ func (s *CausalStore) Read(key int64) int64 {
 	return 0
 }
 
-func (s *CausalStore) Receive(rid int64, msg interface{}) interface{} {
-	if cast, ok := msg.(causalStoreUpdate); ok {
-		s.update(cast)
-	}
-	return nil
-}
-
-func (s *CausalStore) update(u causalStoreUpdate) {
-	var buffer = s.buffers[u.value.Ts.Rid]
-	buffer.enqueue(u)
-	s.buffers[u.value.Ts.Rid] = buffer
-}
-
 func (s *CausalStore) Introduce(rid int64, link network.Link) {
 	if rid != 0 && link != nil {
-		s.peers[rid] = link
+		s.replicas[rid] = link
 	}
+}
+
+func (s *CausalStore) Receive(rid int64, msg interface{}) interface{} {
+	if update, ok := msg.(causalStoreUpdate); ok {
+		var buffer = s.buffers[update.value.Ts.Rid]
+		buffer.enqueue(update)
+		s.buffers[update.value.Ts.Rid] = buffer
+	}
+	return nil
 }
 
 func (s *CausalStore) readyToApply(u causalStoreUpdate) bool {
