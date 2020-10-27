@@ -20,10 +20,8 @@ func (c *mockCounter) Read() int64 {
 
 func TestGenericOperations(t *testing.T) {
 	var mock = mockCounter{}
-	var broadcast = BroadcastCounter{}
-	var epidemic = EpidemicCounter{
-		counts: replicatedCounts{},
-	}
+	var broadcast = NewBroadcastCounter()
+	var epidemic = NewEpidemicCounter(0)
 
 	var singleCopyIncCheck = func(counter Counter) error {
 		var expected int64 = 5
@@ -39,7 +37,7 @@ func TestGenericOperations(t *testing.T) {
 		return nil
 	}
 
-	for _, c := range []Counter{&mock, &broadcast, &epidemic} {
+	for _, c := range []Counter{&mock, broadcast, epidemic} {
 		if err := singleCopyIncCheck(c); err != nil {
 			t.Errorf("failed single copy API test for %T: %v", c, err)
 		}

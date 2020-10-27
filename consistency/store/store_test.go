@@ -3,8 +3,6 @@ package store
 import (
 	"fmt"
 	"testing"
-
-	"github.com/dati-mipt/distributed-algorithms/util"
 )
 
 type mockStore struct {
@@ -28,12 +26,8 @@ func (s *mockStore) Read(key int64) int64 {
 
 func TestGenericOperations(t *testing.T) {
 	var mock = mockStore{data: map[int64]int64{}}
-	var evential = EventualStore{store: map[int64]util.TimestampedValue{}}
-	var causal = CausalStore{
-		store:   map[int64]util.TimestampedValue{},
-		buffers: map[int64]inBuffer{},
-		deps:    map[int64]util.Timestamp{},
-	}
+	var eventual = NewEventualStore(0)
+	var causal = NewCausalStore(0)
 
 	var singleCopyStoreCheck = func(store Store) error {
 		var key int64 = 4
@@ -48,7 +42,7 @@ func TestGenericOperations(t *testing.T) {
 		return nil
 	}
 
-	for _, c := range []Store{&mock, &evential, &causal} {
+	for _, c := range []Store{&mock, eventual, causal} {
 		if err := singleCopyStoreCheck(c); err != nil {
 			t.Errorf("failed single copy API test for %T: %v", c, err)
 		}

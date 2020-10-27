@@ -1,4 +1,4 @@
-package sequencer
+package template
 
 type Operation interface {
 }
@@ -12,6 +12,6 @@ type ReplicatedDataType interface {
 	ComputeResult(op Operation, confirmed []Operation) OperationResult
 }
 
-type Sequencer interface {
+type ReplicatedStorageTemplate interface {
 	Perform(op Operation) OperationResult
 }

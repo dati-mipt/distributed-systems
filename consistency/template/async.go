@@ -1,4 +1,4 @@
-package sequencer
+package template
 
 import (
 	"github.com/dati-mipt/distributed-algorithms/network"

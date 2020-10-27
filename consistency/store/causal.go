@@ -47,12 +47,20 @@ func (b inBuffer) dequeue() causalStoreUpdate {
 type CausalStore struct {
 	rid        int64
 	localClock int64
+	store      map[int64]util.TimestampedValue
+	buffers    map[int64]inBuffer
+	deps       map[int64]util.Timestamp
+	replicas   map[int64]network.Link
+}
 
-	store   map[int64]util.TimestampedValue
-	buffers map[int64]inBuffer
-	deps    map[int64]util.Timestamp
-
-	replicas map[int64]network.Link
+func NewCausalStore(rid int64) *CausalStore {
+	return &CausalStore{
+		rid:      rid,
+		store:    map[int64]util.TimestampedValue{},
+		buffers:  map[int64]inBuffer{},
+		deps:     map[int64]util.Timestamp{},
+		replicas: map[int64]network.Link{},
+	}
 }
 
 func (s *CausalStore) Write(key int64, value int64) bool {

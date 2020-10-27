@@ -14,10 +14,6 @@ func newReliableLink(n *ReliableNetwork, src, dst int64) *ReliableLink {
 	}
 }
 
-func (c *ReliableLink) Destination() int64 {
-	return c.dst
-}
-
 func (c *ReliableLink) AsyncMessage(msg interface{}) {
 	c.n.Send(c.src, c.dst, msg)
 }

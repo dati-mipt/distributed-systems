@@ -20,7 +20,7 @@ func (r *mockRegister) Read() int64 {
 
 func TestGenericOperations(t *testing.T) {
 	var mock = mockRegister{}
-	var epidemic = EpidemicRegister{}
+	var epidemic = NewEpidemicRegister(0)
 
 	var singleCopyRegisterCheck = func(reg Register) error {
 		var expected int64 = 5
@@ -34,7 +34,7 @@ func TestGenericOperations(t *testing.T) {
 		return nil
 	}
 
-	for _, c := range []Register{&mock, &epidemic} {
+	for _, c := range []Register{&mock, epidemic} {
 		if err := singleCopyRegisterCheck(c); err != nil {
 			t.Errorf("failed single copy API test for %T: %v", c, err)
 		}
