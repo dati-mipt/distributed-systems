@@ -61,7 +61,7 @@ func TestEpidemicRegisterReplicaSet(t *testing.T) {
 	go n.Route()
 
 	if regs[0].Read() != 0 {
-		t.Errorf("wrong default value, got: %d, expected %d", regs[0].Read(), 0)
+		t.Errorf("wrong read value, got: %d, expected %d", regs[0].Read(), 0)
 		return
 	}
 
@@ -71,7 +71,7 @@ func TestEpidemicRegisterReplicaSet(t *testing.T) {
 	time.Sleep(time.Millisecond)
 
 	if regs[1].Read() != 4 {
-		t.Errorf("wrong default value, got: %d, expected %d", regs[1].Read(), 4)
+		t.Errorf("wrong read value, got: %d, expected %d", regs[1].Read(), 4)
 		return
 	}
 }
