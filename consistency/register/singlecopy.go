@@ -39,7 +39,7 @@ func (c *SingleCopyRegisterClient) Write(value int64) bool {
 }
 
 func (c *SingleCopyRegisterClient) Read() int64 {
-	if msg, ok := c.server.BlockingMessage(nil).(int64); ok {
+	if msg, ok := c.server.BlockingMessage(struct{}{}).(int64); ok {
 		return msg
 	}
 
