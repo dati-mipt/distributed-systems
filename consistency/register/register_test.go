@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/dati-mipt/distributed-storage-algorithms/network"
 	"testing"
-	"time"
 )
 
 type mockRegister struct {
@@ -68,7 +67,7 @@ func TestEpidemicRegisterReplicaSet(t *testing.T) {
 	regs[0].Write(4)
 	regs[0].Periodically()
 
-	time.Sleep(time.Millisecond)
+	n.Wait()
 
 	if regs[1].Read() != 4 {
 		t.Errorf("wrong read value, got: %d, expected %d", regs[1].Read(), 4)
