@@ -6,16 +6,18 @@ type Timestamp struct {
 }
 
 func (t Timestamp) Less(o Timestamp) bool {
-	if t.Number < o.Number || (t.Number == o.Number && t.Rid < o.Rid) {
-		return true
-	}
-
-	return false
+	return t.Number < o.Number || (t.Number == o.Number && t.Rid < o.Rid)
 }
 
 type TimestampedValue struct {
 	Val int64
 	Ts  Timestamp
+}
+
+func (t *TimestampedValue) Store(o TimestampedValue) {
+	if o.Ts.Number >= t.Ts.Number {
+		*t = o
+	}
 }
 
 // Max returns the larger of x or y.

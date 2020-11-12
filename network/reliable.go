@@ -1,5 +1,9 @@
 package network
 
+import (
+	"sync"
+)
+
 type ReliableLink struct {
 	n   *ReliableNetwork
 	src int64
@@ -32,6 +36,7 @@ type Message struct {
 type ReliableNetwork struct {
 	peers    map[int64]Peer
 	messages chan Message
+	wg       sync.WaitGroup
 }
 
 func NewReliableNetwork() *ReliableNetwork {
@@ -68,6 +73,7 @@ func (n *ReliableNetwork) Route() {
 			if peer, ok := n.peers[msg.dst]; ok {
 				go func() {
 					msg.resp <- peer.Receive(msg.src, msg.data)
+					n.wg.Done()
 				}()
 			}
 		}
@@ -75,8 +81,9 @@ func (n *ReliableNetwork) Route() {
 }
 
 func (n *ReliableNetwork) Send(src, dst int64, msg interface{}) <-chan interface{} {
-	var resp chan interface{}
+	resp := make(chan interface{}, 1)
 
+	n.wg.Add(1)
 	n.messages <- Message{
 		src:  src,
 		dst:  dst,
@@ -85,4 +92,8 @@ func (n *ReliableNetwork) Send(src, dst int64, msg interface{}) <-chan interface
 	}
 
 	return resp
+}
+
+func (n *ReliableNetwork) Wait() {
+	n.wg.Wait()
 }
