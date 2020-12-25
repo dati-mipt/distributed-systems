@@ -67,7 +67,7 @@ func TestFTRegisterReplicaSet(t *testing.T) {
 	regs[0].Write(4)
 	regs[0].Periodically()
 
-	n.Wait()
+	//n.Wait()
 
 	if regs[1].Read() != 4 {
 		t.Errorf("wrong read value, got: %d, expected %d", regs[1].Read(), 4)
