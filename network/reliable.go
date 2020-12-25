@@ -75,7 +75,7 @@ func (n *ReliableNetwork) Route() {
 }
 
 func (n *ReliableNetwork) Send(src, dst int64, msg interface{}) <-chan interface{} {
-	var resp chan interface{}
+	resp := make(chan interface{}, 1)
 
 	n.messages <- Message{
 		src:  src,

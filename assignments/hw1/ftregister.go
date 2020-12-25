@@ -22,10 +22,9 @@ func NewFaultTolerantRegister(rid int64) *FaultTolerantRegister {
 func (r *FaultTolerantRegister) Write(value int64) bool {
 	fmt.Println("-----------Write-----------")
 	fmt.Printf("write value: %d\n", value)
-	
+
 	r.current.Val = value
 	r.current.Ts = util.Timestamp{Number: r.current.Ts.Number + 1, Rid: r.rid}
-
 
 	return true
 }
@@ -36,29 +35,31 @@ func Callback(rep network.Link, pipe chan util.TimestampedValue) {
 	pipe <- msg
 }
 
-func BlockingMessageToQuorum(r *FaultTolerantRegister)(msg util.TimestampedValue) {
+func BlockingMessageToQuorum(r *FaultTolerantRegister) (msg util.TimestampedValue) {
+	fmt.Println("BlockingMessageToQuorum ...")
+
 	// create channel
-	message_chan := make(chan util.TimestampedValue, 2)
+	message_chan := make(chan util.TimestampedValue, len(r.replicas))
+	// done := make(chan bool) // synchronization
 
 	// create go routines
 	var counter = 0
 	for _, rep := range r.replicas {
-		go func(pipe chan util.TimestampedValue, rep network.Link) {
-			
+		go func( /*pipe chan util.TimestampedValue, rep network.Link*/ ) {
+
 			var msg = (rep.BlockingMessage(nil)).(util.TimestampedValue)
-			
-			pipe <- msg
-		}(message_chan, rep)
+			message_chan <- msg
+		}() //(message_chan, rep)
 		counter++
 	}
-	close(message_chan)
 
-	
+	// debug info
 	fmt.Printf("counter: %d\n", counter)
 	for i := 0; i < cap(message_chan); i++ {
 		y := <-message_chan
 		fmt.Println(y)
 	}
+	close(message_chan) // ?
 
 	// organize quorum
 	var max_replica_resp = (len(r.replicas) / 2) + 1
@@ -70,11 +71,12 @@ func BlockingMessageToQuorum(r *FaultTolerantRegister)(msg util.TimestampedValue
 			max_ts = elem
 		}
 	}
-	// 
-	if(rid_ <= max_replica_resp){
+	//
+	if rid_ <= max_replica_resp {
 		return util.TimestampedValue{}
 	}
 
+	// <-done
 	return max_ts
 }
 
@@ -85,26 +87,6 @@ func (r *FaultTolerantRegister) Read() int64 {
 	fmt.Printf("rid: %d, ts: %d, read value: %d\n", r.current.Ts.Number, r.rid, r.current.Val)
 
 	BlockingMessageToQuorum(r)
-
-	// read data from replica and set current TimestampedValue due to max replica id
-
-	/*var msg interface{}
-	if update, ok := msg.(util.TimestampedValue); ok {
-		if r.current.Ts.Less(update.Ts) {
-			r.current = update
-		}
-	}
-
-	// update Timestamp
-
-	r.current.Ts = util.Timestamp{Number: r.current.Ts.Number + 1, Rid: r.rid}
-
-	// write value to replicas
-
-	for _, rep := range r.replicas {
-		rep.AsyncMessage(r.current)
-	}*/
-
 	return r.current.Val
 }
 
