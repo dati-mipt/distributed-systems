@@ -20,46 +20,88 @@ func NewFTRegister(rid int64) *FTRegister {
 	}
 }
 
-func (r *FTRegister) SingleWrite(value util.TimestampedValue) bool {
-	for _, link := range r.replicas {
-		link.AsyncMessage(value);
-	}
-	// In real ftr we must wait len(r.replicas)/2 + 1 recvs.
-	// It's nessery to anderstand did our system crash,
-	// but we will check this in SingleRead() only!
-	// Because of this in Write() and Read() we will check this.
-	return true
-}
-
-func (r *FTRegister) SingleRead() int64 {
-	system_size := len(r.replicas)
-	// TODO waiteing for system_size / 2 + 1 recvs in read.
-}
-
-
-func (r *FTRegister) Write(value int64) bool {
-	// TODO
-	// write is SingleRead + SingleWrite is this order
-	return true
-}
-
-func (r *FTRegister) Read() int64 {
-	// TODO 
-	// write is SingleRead + SingleWrite is this order
-	return 0
-}
-
 func (r *FTRegister) Introduce(rid int64, link network.Link) {
 	if link != nil {
 		r.replicas[rid] = link
 	}
 }
 
-func (r *FTRegister) Receive(rid int64, msg interface{}) interface{} {
-	if update, ok := msg.(util.TimestampedValue); ok {
-		if r.current.Ts.Less(update.Ts) {
-			r.current = update
+func (r *FTRegister) SingleWrite(value util.TimestampedValue) bool {
+	system_size := len(r.replicas)
+	system_chan := make(chan interface{}, system_size)
+
+	// truing to write in all replicas
+	for _, link := range r.replicas {
+		go func(link neework.Link, value util.TimestampedValue) {
+			if msg, ok := link.BlockingMessage(value).(util.TimestampedValue); ok {
+				system_chan <- msg // write to chan to unlock waiting of SingWrite()
+			}
+		}(link, value)
+	}
+
+	// wait (system_size + 1) / 2 answers
+	for i := 0; i < (system_size + 1) / 2; ++i {
+		msg <- system_chan // "Another one have replied to writing"
+	}
+	return true
+}
+
+func (r *FTRegister) SingleRead() util.TimestapedValue {
+	system_size := len(r.replicas)
+	system_chan := make(chan interface{}, system_size)
+
+	// truing to write in all replicas
+	for _, link := range r.replicas {
+		go func(link neework.Link, value util.TimestampedValue) {
+			if msg, ok := link.BlockingMessage(value).(util.TimestampedValue); ok {
+				system_chan <- msg // write to chan the answer
+			}
+		}(link, struct{}{})
+	}
+
+	// wait (system_size + 1) / 2 answers, and write the most actual
+	value := r.current
+	for i := 0; i < (system_size + 1) / 2; ++i {
+		msg <- system_chan // "Another one have replied to reading"
+
+		msg_value := msg.(util.TimestapedValue)
+		if value.Ts.Less(msg_value.Ts) {
+			value = msg_value
 		}
 	}
+	return value
+}
+
+func (r *FTRegister) Read() int64 {
+	value := r.SingleRead()
+	r.SingleWrite(value)
+	return value.Val
+}
+
+func (r *FTRegister) Write(value int64) bool {
+	// Reading old data
+	val := r.SingleRead() // return max TimestapedValue
+	// Update own data
+	val.Val = value
+	val.Ts.Number++
+	val.Ts.Rid = rid
+	r.current.Store(val)
+	// Write resultes
+	r.SingleWrite(val)
+	return true
+}
+
+func (r *FTRegister) Receive(rid int64, msg interface{}) interface{} {
+	if msg == nil {
+		return nil
+	}
+
+	value := msg.(type)
+	if value == struct{} {
+		return r.current // Read
+	} else if value == util.TimestampedValue {
+		r.current.Store(value) // Write
+	}
+
 	return nil
 }
