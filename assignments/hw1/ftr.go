@@ -3,7 +3,6 @@ package ftr
 import (
 	"github.com/dati-mipt/distributed-storage-algorithms/network"
 	"github.com/dati-mipt/distributed-storage-algorithms/util"
-	"fmt"
 )
 
 type FTRegister struct {
@@ -32,39 +31,39 @@ func (r *FTRegister) SingleWrite(value util.TimestampedValue) bool {
 
 	// truing to write in all replicas
 	for _, link := range r.replicas {
-		go func(link neework.Link, value util.TimestampedValue) {
+		go func(system_chan chan interface{}, link network.Link, value util.TimestampedValue) {
 			if msg, ok := link.BlockingMessage(value).(util.TimestampedValue); ok {
 				system_chan <- msg // write to chan to unlock waiting of SingWrite()
 			}
-		}(link, value)
+		}(system_chan, link, value)
 	}
 
 	// wait (system_size + 1) / 2 answers
-	for i := 0; i < (system_size + 1) / 2; ++i {
-		msg <- system_chan // "Another one have replied to writing"
+	for i := 0; i < (system_size + 1) / 2; i++ {
+		<-system_chan // "Another one have replied to writing"
 	}
 	return true
 }
 
-func (r *FTRegister) SingleRead() util.TimestapedValue {
+func (r *FTRegister) SingleRead() util.TimestampedValue {
 	system_size := len(r.replicas)
 	system_chan := make(chan interface{}, system_size)
 
 	// truing to write in all replicas
 	for _, link := range r.replicas {
-		go func(link neework.Link, value util.TimestampedValue) {
-			if msg, ok := link.BlockingMessage(value).(util.TimestampedValue); ok {
-				system_chan <- msg // write to chan the answer
+		go func(system_chan chan interface{}, link network.Link) {
+			if msg, ok := link.BlockingMessage(struct{}{}).(util.TimestampedValue); ok {
+				system_chan <- msg // results of read
 			}
-		}(link, struct{}{})
+		}(system_chan, link)
 	}
 
 	// wait (system_size + 1) / 2 answers, and write the most actual
 	value := r.current
-	for i := 0; i < (system_size + 1) / 2; ++i {
-		msg <- system_chan // "Another one have replied to reading"
+	for i := 0; i < (system_size + 1) / 2; i++ {
+	msg := <-system_chan // "Another one have replied to reading"
 
-		msg_value := msg.(util.TimestapedValue)
+		msg_value := msg.(util.TimestampedValue)
 		if value.Ts.Less(msg_value.Ts) {
 			value = msg_value
 		}
@@ -84,7 +83,7 @@ func (r *FTRegister) Write(value int64) bool {
 	// Update own data
 	val.Val = value
 	val.Ts.Number++
-	val.Ts.Rid = rid
+	val.Ts.Rid = r.rid
 	r.current.Store(val)
 	// Write resultes
 	r.SingleWrite(val)
@@ -96,12 +95,14 @@ func (r *FTRegister) Receive(rid int64, msg interface{}) interface{} {
 		return nil
 	}
 
-	value := msg.(type)
-	if value == struct{} {
-		return r.current // Read
-	} else if value == util.TimestampedValue {
-		r.current.Store(value) // Write
+	switch value := msg.(type) {
+		case struct{}: {
+			return r.current // Read
+		}
+		case util.TimestampedValue: {
+			r.current.Store(value) // Write
+		}
 	}
 
-	return nil
+	return nil;
 }

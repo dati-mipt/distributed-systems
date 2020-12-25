@@ -65,7 +65,9 @@ func TestFTRegisterReplicaSet(t *testing.T) {
 	}
 
 	regs[0].Write(4)
-	regs[0].Periodically()
+	// regs[0].Periodically() <- we aren't needed in such function, 
+    // because we confirm that more than half is in working order 
+	// and have been updated. 
 
 	//n.Wait()
 
