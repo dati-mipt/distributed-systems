@@ -59,11 +59,14 @@ func TestFTRegisterReplicaSet(t *testing.T) {
 
 	go n.Route()
 
+
+	fmt.Printf("------------Reading!--------------\n");
 	if regs[0].Read() != 0 {
 		t.Errorf("wrong read value, got: %d, expected %d", regs[0].Read(), 0)
 		return
 	}
 
+	fmt.Printf("------------Writing!--------------\n");
 	regs[0].Write(4)
 	// regs[0].Periodically() <- we aren't needed in such function, 
     // because we confirm that more than half is in working order 
@@ -71,6 +74,7 @@ func TestFTRegisterReplicaSet(t *testing.T) {
 
 	//n.Wait()
 
+	fmt.Printf("------------Reading!--------------\n");
 	if regs[1].Read() != 4 {
 		t.Errorf("wrong read value, got: %d, expected %d", regs[1].Read(), 4)
 		return
