@@ -26,40 +26,50 @@ func (r *FTRegister) Introduce(rid int64, link network.Link) {
 	}
 }
 
-func (r *FTRegister) SingleWrite(value util.TimestampedValue) bool {
-	// in prev versions it wass like SingleRead but with update in last part
-	for _, link := range r.replicas {
-		link.AsyncMessage(value)
-	}
-	return true
-}
-
-func (r *FTRegister) SingleRead() util.TimestampedValue {
+func (r *FTRegister) SendToReplicas(value interface{}) chan interface{} {
 	system_size := len(r.replicas)
 	system_chan := make(chan interface{}, system_size)
 
-	// truing to write in all replicas
 	for _, link := range r.replicas {
 		go func(link network.Link) {
-			if msg, ok := link.BlockingMessage(struct{}{}).(util.TimestampedValue); ok {
+			if msg, ok := link.BlockingMessage(value).(util.TimestampedValue); ok {
 				system_chan <- msg // results of read
 			}
 		}(link)
 	}
+	return system_chan
+}
 
-	// wait (system_size + 1) / 2 answers, and write the most actual
-	value := r.current
-
-	fmt.Printf("Wait for %d answers\n", system_size) //
+func (r *FTRegister) WaitAnswer(system_chan chan interface{}, value interface{}) interface{} {
+	system_size := len(r.replicas)
 	for i := 0; i < (system_size + 1) / 2; i++ {
 		fmt.Printf("Waiting...\n") //
 		msg := <-system_chan // "Another one have replied to reading"
 		fmt.Printf("It was %d'th answer\n", i + 1) //
-		msg_value := msg.(util.TimestampedValue)
-		if value.Ts.Less(msg_value.Ts) {
-			value = msg_value
+
+		if(value != nil) { // value == nil if you wait answers in write
+			msg_value := msg.(util.TimestampedValue)
+			if value.(util.TimestampedValue).Ts.Less(msg_value.Ts) {
+				value = msg_value
+			}
 		}
 	}
+	return value
+}
+
+func (r *FTRegister) SingleWrite(value util.TimestampedValue) bool {
+	system_chan := r.SendToReplicas(value);
+	fmt.Printf("Wait for %d answers\n", len(r.replicas)) //
+	r.WaitAnswer(system_chan, nil)
+
+	return true
+}
+
+func (r *FTRegister) SingleRead() util.TimestampedValue {
+	system_chan := r.SendToReplicas(struct{}{});
+	value := r.current
+	fmt.Printf("Wait for %d answers\n", len(r.replicas)) //
+	value = r.WaitAnswer(system_chan, value).(util.TimestampedValue)
 	return value
 }
 
@@ -97,6 +107,7 @@ func (r *FTRegister) Receive(rid int64, msg interface{}) interface{} {
 		}
 		case util.TimestampedValue: {
 			r.current.Store(value) // Write
+			return r.current
 		}
 	}
 
