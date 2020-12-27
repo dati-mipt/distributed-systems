@@ -47,7 +47,7 @@ func (r *FTRegister) WaitAnswer(system_chan chan interface{}, value interface{})
 		msg := <-system_chan // "Another one have replied to reading"
 		fmt.Printf("It was %d'th answer\n", i + 1) //
 
-		if(value != nil) { // value == nil if you wait answers in write
+		if value != nil { // value == nil if you wait answers in write
 			msg_value := msg.(util.TimestampedValue)
 			if value.(util.TimestampedValue).Ts.Less(msg_value.Ts) {
 				value = msg_value
@@ -69,7 +69,9 @@ func (r *FTRegister) SingleRead() util.TimestampedValue {
 	system_chan := r.SendToReplicas(struct{}{});
 	value := r.current
 	fmt.Printf("Wait for %d answers\n", len(r.replicas)) //
-	value = r.WaitAnswer(system_chan, value).(util.TimestampedValue)
+	if sub_value, ok := r.WaitAnswer(system_chan, value).(util.TimestampedValue); ok {
+		value = sub_value;
+	}
 	return value
 }
 
