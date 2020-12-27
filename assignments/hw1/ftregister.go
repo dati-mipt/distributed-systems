@@ -121,11 +121,16 @@ func (r *FaultTolerantRegister) Update() {
 
 	// create go routines
 	// organize quorum
-	// var max_replica_resp = (len(r.replicas) / 2) + 1
+	var max_replica_resp = (len(r.replicas) / 2) + 1
+	var counter = 0
 	for _, rep := range r.replicas {
+		if counter >= max_replica_resp {
+			break
+		}
 		go func() {
 			var msg = (rep.BlockingMessage(r.current)).(util.TimestampedValue)
 			message_chan <- msg
 		}()
+		counter++
 	}
 }
