@@ -25,7 +25,8 @@ func (r *FaultTolerantRegister) Read() int64 {
 	fmt.Println("------------Read-----------")
 	fmt.Printf("rid: %d, ts: %d, read value: %d\n", r.current.Ts.Number, r.rid, r.current.Val)
 
-	current_val := BlockingMessageToQuorum(r)
+	// var Nil util.TimestampedValue
+	current_val := BlockingMessageToQuorum(r, nil)
 	r.InternalWrite(current_val)
 	return r.current.Val
 }
@@ -36,7 +37,8 @@ func (r *FaultTolerantRegister) Write(value int64) bool {
 	fmt.Println("-----------Write-----------")
 	fmt.Printf("write value: %d\n", value)
 
-	current_val := BlockingMessageToQuorum(r)
+	//var Nil util.TimestampedValue
+	current_val := BlockingMessageToQuorum(r, nil)
 	current_val.Val = value
 	current_val.Ts = util.Timestamp{Number: r.current.Ts.Number + 1, Rid: r.rid}
 
@@ -48,13 +50,10 @@ func (r *FaultTolerantRegister) Write(value int64) bool {
 }
 
 func (r *FaultTolerantRegister) InternalWrite(msg util.TimestampedValue) {
-	for _, rep := range r.replicas {
-		rep.BlockingMessage(msg)
-	}
-	BlockingMessageToQuorum(r)
+	BlockingMessageToQuorum(r, &msg)
 }
 
-func BlockingMessageToQuorum(r *FaultTolerantRegister) util.TimestampedValue {
+func BlockingMessageToQuorum(r *FaultTolerantRegister, msg_ *util.TimestampedValue) util.TimestampedValue {
 	fmt.Println("BlockingMessageToQuorum ...")
 
 	// create channel
@@ -64,8 +63,12 @@ func BlockingMessageToQuorum(r *FaultTolerantRegister) util.TimestampedValue {
 	var counter = 0
 	for _, rep := range r.replicas {
 		go func() {
-
-			var msg = (rep.BlockingMessage(nil)).(util.TimestampedValue)
+			var msg util.TimestampedValue
+			if msg_ == nil {
+				msg = (rep.BlockingMessage(nil)).(util.TimestampedValue)
+			} else {
+				msg = (rep.BlockingMessage(*msg_)).(util.TimestampedValue)
+			}
 			message_chan <- msg
 		}()
 		counter++
