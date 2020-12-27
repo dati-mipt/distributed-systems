@@ -49,11 +49,9 @@ func (r *FaultTolerantRegister) Write(value int64) bool {
 
 func (r *FaultTolerantRegister) InternalWrite(msg util.TimestampedValue) {
 	for _, rep := range r.replicas {
-		if rep == r.replicas[r.rid] {
-			continue
-		}
-		rep.AsyncMessage(r.current)
+		rep.BlockingMessage(msg)
 	}
+	BlockingMessageToQuorum(r)
 }
 
 func BlockingMessageToQuorum(r *FaultTolerantRegister) util.TimestampedValue {
@@ -86,14 +84,13 @@ func BlockingMessageToQuorum(r *FaultTolerantRegister) util.TimestampedValue {
 	var rid_ = 0
 	var max_ts util.TimestampedValue
 	for elem := range message_chan {
+		if rid_ >= max_replica_resp {
+			break
+		}
 		rid_++
 		if elem.Ts.Less(max_ts.Ts) {
 			max_ts = elem
 		}
-	}
-	//
-	if rid_ <= max_replica_resp {
-		return util.TimestampedValue{}
 	}
 	return max_ts
 }
@@ -113,24 +110,4 @@ func (r *FaultTolerantRegister) Receive(rid int64, msg interface{}) interface{} 
 		}
 	}
 	return r.current
-}
-
-func (r *FaultTolerantRegister) Update() {
-	// create channel
-	message_chan := make(chan util.TimestampedValue, len(r.replicas))
-
-	// create go routines
-	// organize quorum
-	var max_replica_resp = (len(r.replicas) / 2) + 1
-	var counter = 0
-	for _, rep := range r.replicas {
-		if counter >= max_replica_resp {
-			break
-		}
-		go func() {
-			var msg = (rep.BlockingMessage(r.current)).(util.TimestampedValue)
-			message_chan <- msg
-		}()
-		counter++
-	}
 }

@@ -43,7 +43,7 @@ func TestFaultTolerantRegisterReplicaSet(t *testing.T) {
 	}*/
 
 	regs[0].Write(4)
-	regs[0].Update()
+	/*regs[0].Update()*/
 
 	time.Sleep(time.Millisecond)
 
