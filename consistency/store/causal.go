@@ -1,8 +1,8 @@
 package store
 
 import (
-	"github.com/dati-mipt/distributed-storage-algorithms/network"
-	"github.com/dati-mipt/distributed-storage-algorithms/util"
+	"github.com/dati-mipt/distributed-systems/network"
+	"github.com/dati-mipt/distributed-systems/util"
 )
 
 // todo: move queue from store module module

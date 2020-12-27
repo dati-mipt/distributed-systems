@@ -1,8 +1,8 @@
 package counter
 
 import (
-	"github.com/dati-mipt/distributed-storage-algorithms/network"
-	"github.com/dati-mipt/distributed-storage-algorithms/util"
+	"github.com/dati-mipt/distributed-systems/network"
+	"github.com/dati-mipt/distributed-systems/util"
 )
 
 type replicatedCounts map[int64]int64

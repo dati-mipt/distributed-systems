@@ -2,8 +2,9 @@ package register
 
 import (
 	"fmt"
-	"github.com/dati-mipt/distributed-storage-algorithms/network"
 	"testing"
+
+	"github.com/dati-mipt/distributed-systems/network"
 )
 
 type mockRegister struct {

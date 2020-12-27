@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/dati-mipt/distributed-storage-algorithms/network"
+	"github.com/dati-mipt/distributed-systems/network"
 )
 
 func TestFaultTolerantRegister(t *testing.T) {

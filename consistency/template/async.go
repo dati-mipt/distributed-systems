@@ -1,7 +1,7 @@
 package template
 
 import (
-	"github.com/dati-mipt/distributed-storage-algorithms/network"
+	"github.com/dati-mipt/distributed-systems/network"
 )
 
 type AsyncSequencerServer struct {
