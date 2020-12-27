@@ -19,37 +19,57 @@ func NewFaultTolerantRegister(rid int64) *FaultTolerantRegister {
 	}
 }
 
+// compound read = {read + write}
+
+func (r *FaultTolerantRegister) Read() int64 {
+	fmt.Println("------------Read-----------")
+	fmt.Printf("rid: %d, ts: %d, read value: %d\n", r.current.Ts.Number, r.rid, r.current.Val)
+
+	current_val := BlockingMessageToQuorum(r)
+	r.InternalWrite(current_val)
+	return r.current.Val
+}
+
+// compound write = {read + write}
+
 func (r *FaultTolerantRegister) Write(value int64) bool {
 	fmt.Println("-----------Write-----------")
 	fmt.Printf("write value: %d\n", value)
 
-	r.current.Val = value
-	r.current.Ts = util.Timestamp{Number: r.current.Ts.Number + 1, Rid: r.rid}
+	current_val := BlockingMessageToQuorum(r)
+	current_val.Val = value
+	current_val.Ts = util.Timestamp{Number: r.current.Ts.Number + 1, Rid: r.rid}
+
+	r.current = current_val
+
+	r.InternalWrite(current_val)
 
 	return true
 }
 
-func Callback(rep network.Link, pipe chan util.TimestampedValue) {
-	var msg = (rep.BlockingMessage(nil)).(util.TimestampedValue)
-	fmt.Println("waiting ...")
-	pipe <- msg
+func (r *FaultTolerantRegister) InternalWrite(msg util.TimestampedValue) {
+	for _, rep := range r.replicas {
+		if rep == r.replicas[r.rid] {
+			continue
+		}
+		rep.AsyncMessage(r.current)
+	}
 }
 
-func BlockingMessageToQuorum(r *FaultTolerantRegister) (msg util.TimestampedValue) {
+func BlockingMessageToQuorum(r *FaultTolerantRegister) util.TimestampedValue {
 	fmt.Println("BlockingMessageToQuorum ...")
 
 	// create channel
 	message_chan := make(chan util.TimestampedValue, len(r.replicas))
-	// done := make(chan bool) // synchronization
 
 	// create go routines
 	var counter = 0
 	for _, rep := range r.replicas {
-		go func( /*pipe chan util.TimestampedValue, rep network.Link*/ ) {
+		go func() {
 
 			var msg = (rep.BlockingMessage(nil)).(util.TimestampedValue)
 			message_chan <- msg
-		}() //(message_chan, rep)
+		}()
 		counter++
 	}
 
@@ -75,19 +95,7 @@ func BlockingMessageToQuorum(r *FaultTolerantRegister) (msg util.TimestampedValu
 	if rid_ <= max_replica_resp {
 		return util.TimestampedValue{}
 	}
-
-	// <-done
 	return max_ts
-}
-
-// compound read = {read + write}
-
-func (r *FaultTolerantRegister) Read() int64 {
-	fmt.Println("------------Read-----------")
-	fmt.Printf("rid: %d, ts: %d, read value: %d\n", r.current.Ts.Number, r.rid, r.current.Val)
-
-	BlockingMessageToQuorum(r)
-	return r.current.Val
 }
 
 func (r *FaultTolerantRegister) Introduce(rid int64, link network.Link) {
@@ -108,7 +116,16 @@ func (r *FaultTolerantRegister) Receive(rid int64, msg interface{}) interface{} 
 }
 
 func (r *FaultTolerantRegister) Update() {
+	// create channel
+	message_chan := make(chan util.TimestampedValue, len(r.replicas))
+
+	// create go routines
+	// organize quorum
+	// var max_replica_resp = (len(r.replicas) / 2) + 1
 	for _, rep := range r.replicas {
-		rep.AsyncMessage(r.current)
+		go func() {
+			var msg = (rep.BlockingMessage(r.current)).(util.TimestampedValue)
+			message_chan <- msg
+		}()
 	}
 }
