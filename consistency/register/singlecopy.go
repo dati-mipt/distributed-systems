@@ -4,54 +4,56 @@ import (
 	"github.com/dati-mipt/distributed-systems/network"
 )
 
-type SingleCopyRegisterServer struct {
+type SingleCopyRegister struct {
+	isServer bool
+
 	current int64
+	server  network.Link
 }
 
-func (s *SingleCopyRegisterServer) Introduce(rid int64, link network.Link) {}
-
-func (s *SingleCopyRegisterServer) Receive(rid int64, msg interface{}) interface{} {
-	if msg == nil {
-		return nil
-	}
-
-	switch value := msg.(type) {
-	case int64:
-		s.current = value
+func (r *SingleCopyRegister) Write(value int64) bool {
+	if r.isServer {
+		r.current = value
 		return true
-	case struct{}:
-		return s.current
 	}
 
-	return nil
-}
-
-type SingleCopyRegisterClient struct {
-	server network.Link
-}
-
-func (c *SingleCopyRegisterClient) Write(value int64) bool {
-	if msg, ok := c.server.BlockingMessage(value).(bool); ok {
+	if msg, ok := r.server.BlockingMessage(value).(bool); ok {
 		return msg
 	}
 
 	return false
 }
 
-func (c *SingleCopyRegisterClient) Read() int64 {
-	if msg, ok := c.server.BlockingMessage(struct{}{}).(int64); ok {
+func (r *SingleCopyRegister) Read() int64 {
+	if r.isServer {
+		return r.current
+	}
+
+	if msg, ok := r.server.BlockingMessage(struct{}{}).(int64); ok {
 		return msg
 	}
 
 	return 0
 }
 
-func (c *SingleCopyRegisterClient) Introduce(rid int64, link network.Link) {
-	if rid == 0 && link != nil {
-		c.server = link
+func (r *SingleCopyRegister) Introduce(rid int64, link network.Link) {
+	if !r.isServer && link != nil {
+		r.server = link
 	}
 }
 
-func (c *SingleCopyRegisterClient) Receive(rid int64, msg interface{}) interface{} {
+func (r *SingleCopyRegister) Receive(rid int64, msg interface{}) interface{} {
+	if !r.isServer {
+		return nil
+	}
+
+	switch value := msg.(type) {
+	case int64:
+		r.current = value
+		return true
+	case struct{}:
+		return r.current
+	}
+
 	return nil
 }
