@@ -31,3 +31,14 @@ func Max(x, y int64) int64 {
 type Ticker interface {
 	Periodically()
 }
+
+type Role int
+
+const (
+	Client Role = iota
+	Server
+)
+
+func (r Role) String() string {
+	return [...]string{"Client", "Server"}[r]
+}
