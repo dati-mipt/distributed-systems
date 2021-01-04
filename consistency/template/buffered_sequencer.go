@@ -2,6 +2,7 @@ package template
 
 import (
 	"context"
+
 	"github.com/dati-mipt/distributed-systems/network"
 	"github.com/dati-mipt/distributed-systems/util"
 )

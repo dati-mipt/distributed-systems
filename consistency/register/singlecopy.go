@@ -2,6 +2,7 @@ package register
 
 import (
 	"context"
+
 	"github.com/dati-mipt/distributed-systems/network"
 )
 

@@ -2,6 +2,7 @@ package counter
 
 import (
 	"context"
+
 	"github.com/dati-mipt/distributed-systems/network"
 )
 
