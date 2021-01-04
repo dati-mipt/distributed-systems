@@ -1,6 +1,7 @@
 package template
 
 import (
+	"context"
 	"github.com/dati-mipt/distributed-systems/network"
 	"github.com/dati-mipt/distributed-systems/util"
 )
@@ -27,7 +28,7 @@ func (s *Sequencer) Perform(op Operation) OperationResult {
 		switch s.role {
 		case util.Client:
 			for _, c := range s.peers {
-				c.BlockingMessage(op)
+				<-c.Send(context.Background(), op)
 			}
 			var rVal = s.dataType.ComputeResult(op, s.confirmed)
 			s.confirmed = append(s.confirmed, op)
@@ -36,7 +37,7 @@ func (s *Sequencer) Perform(op Operation) OperationResult {
 			var rVal = s.dataType.ComputeResult(op, s.confirmed)
 			s.confirmed = append(s.confirmed, op)
 			for _, c := range s.peers {
-				c.AsyncMessage(op)
+				c.Send(context.Background(), op)
 			}
 			return rVal
 		}
@@ -71,7 +72,7 @@ func (s *Sequencer) Receive(rid int64, msg interface{}) interface{} {
 			delete(recipientList, rid)
 
 			for _, c := range s.peers {
-				c.AsyncMessage(op)
+				c.Send(context.Background(), op)
 			}
 
 			return true

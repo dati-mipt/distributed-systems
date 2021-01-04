@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"github.com/dati-mipt/distributed-systems/network"
 	"github.com/dati-mipt/distributed-systems/util"
 )
@@ -39,7 +40,7 @@ func (s *EventualStore) Write(key int64, value int64) bool {
 	s.store[key] = tValue
 
 	for _, r := range s.replicas {
-		r.AsyncMessage(eventualStoreUpdate{
+		r.Send(context.Background(), eventualStoreUpdate{
 			key:   key,
 			value: tValue,
 		})

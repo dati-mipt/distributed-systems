@@ -1,6 +1,7 @@
 package counter
 
 import (
+	"context"
 	"github.com/dati-mipt/distributed-systems/network"
 )
 
@@ -18,7 +19,7 @@ func NewBroadcastCounter() *BroadcastCounter {
 func (c *BroadcastCounter) Inc() bool {
 	c.current++
 	for _, p := range c.replicas {
-		p.AsyncMessage(struct{}{})
+		p.Send(context.Background(), struct{}{})
 	}
 	return true
 }

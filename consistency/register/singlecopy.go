@@ -1,6 +1,7 @@
 package register
 
 import (
+	"context"
 	"github.com/dati-mipt/distributed-systems/network"
 )
 
@@ -17,7 +18,7 @@ func (r *SingleCopyRegister) Write(value int64) bool {
 		return true
 	}
 
-	if msg, ok := r.server.BlockingMessage(value).(bool); ok {
+	if msg, ok := (<-r.server.Send(context.Background(), value)).(bool); ok {
 		return msg
 	}
 
@@ -29,7 +30,7 @@ func (r *SingleCopyRegister) Read() int64 {
 		return r.current
 	}
 
-	if msg, ok := r.server.BlockingMessage(struct{}{}).(int64); ok {
+	if msg, ok := (<-r.server.Send(context.Background(), struct{}{})).(int64); ok {
 		return msg
 	}
 

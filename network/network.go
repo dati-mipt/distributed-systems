@@ -1,8 +1,9 @@
 package network
 
+import "context"
+
 type Link interface {
-	AsyncMessage(interface{})
-	BlockingMessage(interface{}) interface{}
+	Send(ctx context.Context, msg interface{}) <-chan interface{}
 }
 
 type Peer interface {

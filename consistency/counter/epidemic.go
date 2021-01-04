@@ -1,6 +1,7 @@
 package counter
 
 import (
+	"context"
 	"github.com/dati-mipt/distributed-systems/network"
 	"github.com/dati-mipt/distributed-systems/util"
 )
@@ -51,6 +52,6 @@ func (c *EpidemicCounter) Receive(rid int64, msg interface{}) interface{} {
 
 func (c *EpidemicCounter) Periodically() {
 	for _, r := range c.replicas {
-		r.AsyncMessage(c.counts)
+		r.Send(context.Background(), c.counts)
 	}
 }

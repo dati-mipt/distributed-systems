@@ -1,6 +1,7 @@
 package template
 
 import (
+	"context"
 	"github.com/dati-mipt/distributed-systems/network"
 	"github.com/dati-mipt/distributed-systems/util"
 )
@@ -8,7 +9,7 @@ import (
 type bufferedSequencerUpdate struct {
 	operation Operation
 	visPrefix int64
-	cid int64
+	cid       int64
 }
 
 type BufferedSequencer struct {
@@ -23,7 +24,7 @@ func (s *BufferedSequencer) Perform(op Operation) OperationResult {
 		return s.dataType.ComputeResult(op, s.confirmed)
 	} else if s.dataType.IsUpdateOnly(op) {
 		for _, c := range s.peers {
-			c.AsyncMessage(op)
+			c.Send(context.Background(), op)
 		}
 		return true
 	}

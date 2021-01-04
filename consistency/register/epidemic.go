@@ -1,6 +1,7 @@
 package register
 
 import (
+	"context"
 	"github.com/dati-mipt/distributed-systems/network"
 	"github.com/dati-mipt/distributed-systems/util"
 )
@@ -45,6 +46,6 @@ func (r *EpidemicRegister) Receive(rid int64, msg interface{}) interface{} {
 
 func (r *EpidemicRegister) Periodically() {
 	for _, rep := range r.replicas {
-		rep.AsyncMessage(r.current)
+		rep.Send(context.Background(), r.current)
 	}
 }

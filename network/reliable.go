@@ -1,6 +1,7 @@
 package network
 
 import (
+	"context"
 	"sync"
 )
 
@@ -18,15 +19,12 @@ func newReliableLink(n *ReliableNetwork, src, dst int64) *ReliableLink {
 	}
 }
 
-func (c *ReliableLink) AsyncMessage(msg interface{}) {
-	c.n.Send(c.src, c.dst, msg)
-}
-
-func (c *ReliableLink) BlockingMessage(msg interface{}) interface{} {
-	return <-c.n.Send(c.src, c.dst, msg)
+func (c *ReliableLink) Send(ctx context.Context, msg interface{}) <-chan interface{} {
+	return c.n.Send(ctx, c.src, c.dst, msg)
 }
 
 type Message struct {
+	ctx  context.Context
 	src  int64
 	dst  int64
 	data interface{}
@@ -80,11 +78,12 @@ func (n *ReliableNetwork) Route() {
 	}
 }
 
-func (n *ReliableNetwork) Send(src, dst int64, msg interface{}) <-chan interface{} {
+func (n *ReliableNetwork) Send(ctx context.Context, src, dst int64, msg interface{}) <-chan interface{} {
 	resp := make(chan interface{}, 1)
 
 	n.wg.Add(1)
 	n.messages <- Message{
+		ctx:  ctx,
 		src:  src,
 		dst:  dst,
 		data: msg,

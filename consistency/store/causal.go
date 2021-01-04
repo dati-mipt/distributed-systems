@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"github.com/dati-mipt/distributed-systems/network"
 	"github.com/dati-mipt/distributed-systems/util"
 )
@@ -79,7 +80,7 @@ func (s *CausalStore) Write(key int64, value int64) bool {
 	s.store[key] = tValue
 
 	for _, r := range s.replicas {
-		r.AsyncMessage(causalStoreUpdate{
+		r.Send(context.Background(), causalStoreUpdate{
 			key:   key,
 			value: tValue,
 			deps:  s.deps,
