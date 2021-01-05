@@ -60,13 +60,8 @@ func (r *FaultTolerantRegister) Broadcast(ctx context.Context, msgchan chan FTRM
 		wg.Add(1)
 		go func(dst network.Link) {
 			replyCh := dst.Send(ctx, msg)
-			select {
-			case reply := <-replyCh:
-				select {
-				case msgchan <-reply.(FTRMessage):
-				case <-ctx.Done():
-				}
-			case <-ctx.Done():
+			if reply, ok := <-replyCh; ok {
+				msgchan <-reply.(FTRMessage)
 			}
 			wg.Done()
 		}(rep)
@@ -91,7 +86,7 @@ func (r *FaultTolerantRegister) Discover() (util.TimestampedValue, bool) {
 		}
 	}
 	cancel()
-	<-msgchan
+	for _ = range msgchan { }
 
 	return newest, count >= qsz
 }
@@ -110,7 +105,7 @@ func (r *FaultTolerantRegister) Propagate(newest util.TimestampedValue) bool {
 		// nop
 	}
 	cancel()
-	<-msgchan
+	for _ = range msgchan { }
 
 	return count >= qsz
 }
