@@ -110,9 +110,7 @@ func (r *FaultTolerantRegister) Propagate(newest util.TimestampedValue) bool {
 	var qsz int64 = int64(len(r.replicas))/2 + 1
 	var count int64 = 1
 
-	for _, ok := <-msgchan; ok && (count < qsz); count++ {
-		// nop
-	}
+	for _, ok := <-msgchan; ok && (count < qsz); count++ { }
 	cancel()
 	for _ = range msgchan { }
 
@@ -154,7 +152,7 @@ func (r *FaultTolerantRegister) Receive(rid int64, msg interface{}) interface{} 
 	case FTR_DISCOVER:
 		return FTRMessage{FTR_STATE, r.getState()}
 	case FTR_PROPAGATE:
-		return FTRMessage{FTR_ACCEPTED, r.updState(typed.state)} // QUEUE?
+		return FTRMessage{FTR_ACCEPTED, r.updState(typed.state)}
 	default:
 		panic(errors.New("Bad request"))
 	}
