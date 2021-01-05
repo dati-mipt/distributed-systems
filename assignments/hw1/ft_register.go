@@ -30,13 +30,22 @@ type FTRMessage struct {
 func NewFaultTolerantRegister(rid int64) *FaultTolerantRegister {
 	return &FaultTolerantRegister{
 		rid:      rid,
-		state:    util.TimestampedValue{},
+		state:    util.TimestampedValue{
+			Val: 0,
+			Ts: util.Timestamp {
+				Number: 0,
+				Rid:    rid,
+			},
+		},
 		mutex:    sync.RWMutex{},
 		replicas: map[int64]network.Link{},
 	}
 }
 
 func (r *FaultTolerantRegister) updState(val util.TimestampedValue) util.TimestampedValue {
+	if cur := r.getState(); !(cur.Ts.Less(val.Ts)) {
+		return cur
+	}
 	r.mutex.Lock()
 	if r.state.Ts.Less(val.Ts) {
 		r.state = val
