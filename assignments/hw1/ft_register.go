@@ -31,11 +31,11 @@ func NewFaultTolerantRegister(rid int64) *FaultTolerantRegister {
 	return &FaultTolerantRegister{
 		rid:      rid,
 		state:    util.TimestampedValue{
-			Val: 0,
-			Ts: util.Timestamp {
-				Number: 0,
-				Rid:    rid,
-			},
+				Val: 0,
+				Ts: util.Timestamp {
+					Number: 0,
+					Rid:    rid,
+				},
 		},
 		mutex:    sync.RWMutex{},
 		replicas: map[int64]network.Link{},
@@ -79,20 +79,23 @@ func (r *FaultTolerantRegister) Broadcast(ctx context.Context, msgchan chan FTRM
 	close(msgchan)
 }
 
-func (r *FaultTolerantRegister) Discover() (util.TimestampedValue, bool) {
-	newest := r.getState()
+func (r *FaultTolerantRegister) QuorumQuery(query FTRMessage) (util.TimestampedValue, bool) {
 	msgchan := make(chan FTRMessage)
 	ctx, cancel := context.WithCancel(context.Background())
-
-	go r.Broadcast(ctx, msgchan, FTRMessage{FTR_DISCOVER, newest})
+	go r.Broadcast(ctx, msgchan, query)
 
 	var qsz int64 = int64(len(r.replicas))/2 + 1
 	var count int64 = 1
+	newest := query.state
 
-	for msg, ok := <-msgchan; ok && (count < qsz); count++ {
+	for msg := range msgchan {
 		if newest.Ts.Less(msg.state.Ts) {
 			newest = msg.state
 		}
+		if count >= qsz {
+			break
+		}
+		count++
 	}
 	cancel()
 	for _ = range msgchan { }
@@ -100,21 +103,14 @@ func (r *FaultTolerantRegister) Discover() (util.TimestampedValue, bool) {
 	return newest, count >= qsz
 }
 
+func (r *FaultTolerantRegister) Discover() (util.TimestampedValue, bool) {
+	return r.QuorumQuery(FTRMessage{FTR_DISCOVER, r.getState()})
+}
+
 func (r *FaultTolerantRegister) Propagate(newest util.TimestampedValue) bool {
 	r.updState(newest)
-	msgchan := make(chan FTRMessage)
-	ctx, cancel := context.WithCancel(context.Background())
-
-	go r.Broadcast(ctx, msgchan, FTRMessage{FTR_PROPAGATE, newest})
-
-	var qsz int64 = int64(len(r.replicas))/2 + 1
-	var count int64 = 1
-
-	for _, ok := <-msgchan; ok && (count < qsz); count++ { }
-	cancel()
-	for _ = range msgchan { }
-
-	return count >= qsz
+	_, ok := r.QuorumQuery(FTRMessage{FTR_PROPAGATE, newest})
+	return ok
 }
 
 func (r *FaultTolerantRegister) Write(value int64) bool {
@@ -133,7 +129,8 @@ func (r *FaultTolerantRegister) Read() int64 {
 	if !ok {
 		panic(errors.New("Discover failed"))
 	}
-	if !r.Propagate(newest) {
+	ok = r.Propagate(newest)
+	if !ok {
 		panic(errors.New("Propagate failed"))
 	}
 	return newest.Val
