@@ -98,3 +98,57 @@ func TestFaultTolerantRegisterDieHard(t *testing.T) {
 		return
 	}
 }
+
+func TestFaultTolerantRegisterRealtime(t *testing.T) {
+	var n = network.NewReliableNetwork()
+	var clusterSize = 51
+	var nIters = 50
+
+	var regs []*FaultTolerantRegister
+	for i := int64(0); i < int64(clusterSize); i++ {
+		var reg = NewFaultTolerantRegister(i)
+		n.Register(i, reg)
+		regs = append(regs, reg)
+	}
+
+	go n.Route()
+
+	for i := 0; i < nIters; i++ {
+		var val int64
+		for j := 0; j < 5; j++ {
+			val = int64(rand.Int())
+			regs[rand.Int() % clusterSize].Write(val)
+		}
+		if regs[rand.Int() % clusterSize].Read() != val {
+			t.Errorf("wrong read value")
+			return
+		}
+	}
+}
+
+func TestFaultTolerantRegisterIncOrder(t *testing.T) {
+	var n = network.NewReliableNetwork()
+	var clusterSize = 51
+	var nIters = 50
+
+	var regs []*FaultTolerantRegister
+	for i := int64(0); i < int64(clusterSize); i++ {
+		var reg = NewFaultTolerantRegister(i)
+		n.Register(i, reg)
+		regs = append(regs, reg)
+	}
+
+	go n.Route()
+
+	init := int64(rand.Int())
+	regs[0].Write(init)
+
+	for i := 0; i < nIters; i++ {
+		id := rand.Int() % clusterSize
+		regs[id].Write(regs[id].Read() + 1)
+	}
+
+	if regs[0].Read() != init + int64(nIters) {
+		t.Errorf("test failed")
+	}
+}
