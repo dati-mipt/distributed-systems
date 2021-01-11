@@ -6,7 +6,11 @@ import (
 	"github.com/dati-mipt/distributed-systems/network"
 )
 
+// Структура широковещательного счетчика
+// current — сколько уже заинкрементировали
+// replicas — карта ссылок на реплики
 type BroadcastCounter struct {
+	// сколько заинкрементировали
 	current  int64
 	replicas map[int64]network.Link
 }
@@ -18,8 +22,10 @@ func NewBroadcastCounter() *BroadcastCounter {
 }
 
 func (c *BroadcastCounter) Inc() bool {
+	// инекрементируем в своей лкоальной копии
 	c.current++
 	for _, p := range c.replicas {
+		// отправляем всем сообшения о необходимости инкрементации, не дожидаясь ответа
 		p.Send(context.Background(), struct{}{})
 	}
 	return true

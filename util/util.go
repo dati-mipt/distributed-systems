@@ -1,8 +1,10 @@
 package util
 
 type Timestamp struct {
+	// номер эпохи
 	Number int64
-	Rid    int64
+	// номер предыдущей реплики
+	Rid int64
 }
 
 func (t Timestamp) Less(o Timestamp) bool {
