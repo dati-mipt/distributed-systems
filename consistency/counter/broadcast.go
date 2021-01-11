@@ -6,7 +6,7 @@ import (
 	"github.com/dati-mipt/distributed-systems/network"
 )
 
-// Структура широковещательного счетчика
+// BroadcastCounter — cтруктура широковещательного счетчика
 // current — сколько уже заинкрементировали
 // replicas — карта ссылок на реплики
 type BroadcastCounter struct {
