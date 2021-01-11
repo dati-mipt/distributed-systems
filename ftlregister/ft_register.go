@@ -57,9 +57,8 @@ func BlockingMessageToQuorum(ftr *FaultTolerantRegister, msg interface{}) util.T
 			messages <- (<-((*rep).Send(context.Background(), msg))).(util.TimestampedValue)
 		}(&rep)
 	}
-	close(messages)
+	// close(messages)
 
-	// organize quorum
 	majority := int(math.Ceil(float64(len(ftr.replicas) / 2)))
 	var counter = 0
 	var newTsV util.TimestampedValue
