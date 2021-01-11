@@ -32,7 +32,7 @@ type Message struct {
 }
 
 type ReliableNetwork struct {
-	peers map[int64]Peer
+	peers 	 map[int64]Peer
 	// канал с сообщениями, куда все добавляют сообщения, которые хотят отправить
 	messages chan Message
 	wg       sync.WaitGroup
