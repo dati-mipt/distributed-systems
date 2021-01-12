@@ -2,6 +2,7 @@ package ftlregister
 
 import (
 	"context"
+	"fmt"
 	"math"
 
 	"github.com/dati-mipt/distributed-systems/network"
@@ -51,11 +52,19 @@ func (ftr *FaultTolerantRegister) Read() int64 {
 func BlockingMessageToQuorum(ftr *FaultTolerantRegister, msg interface{}) util.TimestampedValue {
 	messages := make(chan util.TimestampedValue, len(ftr.replicas))
 
-	for _, rep := range ftr.replicas {
-		go func(rep *network.Link) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	for i, rep := range ftr.replicas {
+		go func(i *int64, rep *network.Link) {
 			// Send возвращает канал, передающий интерфейс
-			messages <- (<-((*rep).Send(context.Background(), msg))).(util.TimestampedValue)
-		}(&rep)
+			message, ok := (<-((*rep).Send(ctx, msg))).(util.TimestampedValue)
+			if ok {
+				messages <- message
+			} else {
+				fmt.Println(fmt.Errorf("Returned value from the %d-th replica is not TimestampValue", i).Error())
+			}
+		}(&i, &rep)
 	}
 	// close(messages)
 
@@ -63,12 +72,13 @@ func BlockingMessageToQuorum(ftr *FaultTolerantRegister, msg interface{}) util.T
 	var counter = 0
 	var newTsV util.TimestampedValue
 	for elem := range messages {
-		if counter < majority {
+		if counter <= majority {
 			if !elem.Ts.Less(newTsV.Ts) {
 				newTsV = elem
 			}
 			counter++
 		} else {
+			cancel()
 			break
 		}
 
