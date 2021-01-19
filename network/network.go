@@ -4,6 +4,8 @@ import "context"
 
 type Link interface {
 	Send(ctx context.Context, msg interface{}) <-chan interface{}
+	AsyncMessage(interface{})
+	BlockingMessage(interface{}) interface{}
 }
 
 type Peer interface {

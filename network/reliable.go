@@ -23,6 +23,16 @@ func (c *ReliableLink) Send(ctx context.Context, msg interface{}) <-chan interfa
 	return c.n.Send(ctx, c.src, c.dst, msg)
 }
 
+func (c *ReliableLink) AsyncMessage(msg interface{}) {
+	var ctx context.Context
+	c.n.Send(ctx, c.src, c.dst, msg)
+}
+
+func (c *ReliableLink) BlockingMessage(msg interface{}) interface{} {
+	var ctx context.Context
+	return <-c.n.Send(ctx, c.src, c.dst, msg)
+}
+
 type Message struct {
 	ctx  context.Context
 	src  int64
