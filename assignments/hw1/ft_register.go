@@ -59,10 +59,13 @@ func (r *FaultTolerantRegister) Write(value int64) bool {
 }
 
 func (r *FaultTolerantRegister) Read() int64 {
-	if (r.ReadQuorum() && r.WriteQuorum()) {
-		return r.current.Val
+	if (!r.ReadQuorum()) {
+		return 404 //???xd
 	}
-	return 404 //?????
+	if (!r.WriteQuorum()) {
+		return 404 //???xd
+	}
+	return r.current.Val
 }
 
 func (r *FaultTolerantRegister) Introduce(rid int64, link network.Link) {
