@@ -2,7 +2,6 @@ package hw1
 
 import (
 	"context"
-	"fmt"
 	"github.com/dati-mipt/distributed-systems/network"
 	"github.com/dati-mipt/distributed-systems/util"
 )
@@ -119,8 +118,3 @@ func (r *FaultTolerantRegister) useQuorum(msg interface{}, callback func(msg int
 
 	return successCnt >= r.quorumCount()
 }
-
-func (r *FaultTolerantRegister) print() (s string) {
-	return fmt.Sprintf("%d %d %d", r.rid, r.current.Ts.Number, r.current.Val)
-}
-
