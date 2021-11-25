@@ -3,14 +3,12 @@ package hw1
 import (
 	"github.com/dati-mipt/distributed-systems/network"
 	"github.com/dati-mipt/distributed-systems/util"
-	"math"
 
 	"context"
-	//"fmt"
+	"math"
 )
 
 type FaultTolerantRegister struct {
-	rid     int64
 	links   map[int64]network.Link
 	current util.TimestampedValue
 }
@@ -20,7 +18,6 @@ type Msg struct {
 
 func NewFaultTolerantRegister(rid int64) *FaultTolerantRegister {
 	return &FaultTolerantRegister{
-		rid:     rid,
 		links:   map[int64]network.Link{},
 		current: util.TimestampedValue{Ts: util.Timestamp{Rid: rid}},
 	}
@@ -28,7 +25,7 @@ func NewFaultTolerantRegister(rid int64) *FaultTolerantRegister {
 
 func (r *FaultTolerantRegister) Write(value int64) bool {
 	r.current.Val = value
-	r.current.Ts = util.Timestamp{Number: r.current.Ts.Number + 1, Rid: r.rid}
+	r.current.Ts = util.Timestamp{Number: r.current.Ts.Number + 1, Rid: r.current.Ts.Rid}
 	r.current = r.readQuorum()
 	r.writeQuorum(r.current)
 	return true
