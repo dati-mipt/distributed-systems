@@ -117,9 +117,9 @@ func TestFaultTolerantRegisterRealtime(t *testing.T) {
 		var val int64
 		for j := 0; j < 5; j++ {
 			val = int64(rand.Int())
-			regs[rand.Int() % clusterSize].Write(val)
+			regs[rand.Int()%clusterSize].Write(val)
 		}
-		if regs[rand.Int() % clusterSize].Read() != val {
+		if regs[rand.Int()%clusterSize].Read() != val {
 			t.Errorf("wrong read value")
 			return
 		}
@@ -148,7 +148,7 @@ func TestFaultTolerantRegisterIncOrder(t *testing.T) {
 		regs[id].Write(regs[id].Read() + 1)
 	}
 
-	if regs[0].Read() != init + int64(nIters) {
+	if regs[0].Read() != init+int64(nIters) {
 		t.Errorf("test failed")
 	}
 }
