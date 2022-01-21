@@ -61,16 +61,8 @@ func (r *FaultTolerantRegister) Write(value int64) bool {
 }
 
 func (r *FaultTolerantRegister) Read() int64 {
-	if !r.ReadQuorum() {
-		return 404 //???xd
-	}
-	// in r.current we now have the max ts
-	// But here between ReadQuorum() and WriteQuorum() 
-	// some other node can change the register
-	// therefore, we write not valid data to quorum
-	if !r.WriteQuorum() {
-		return 404 //???xd
-	}
+	r.ReadQuorum();
+	r.WriteQuorum();
 	return r.current.Val
 }
 
@@ -84,8 +76,12 @@ func (r *FaultTolerantRegister) Receive(rid int64, msg interface{}) interface{} 
 	switch t := msg.(type) {
 	case util.TimestampedValue:
 		{
+			prev_current := r.current
+			if t.Ts.Less(prev_current.Ts) {
+				return nil
+			}
 			r.current.Store(t)
-			return r.current
+			return prev_current
 		}
 	case struct{}:
 		return r.current
