@@ -1,7 +1,9 @@
 package hw1
 
 import (
+	"fmt"
 	"context"
+	"time"
 	"github.com/dati-mipt/distributed-systems/network"
 	"github.com/dati-mipt/distributed-systems/util"
 )
@@ -19,32 +21,84 @@ func NewFaultTolerantRegister(rid int64) *FaultTolerantRegister {
 	}
 }
 
-func (r *FaultTolerantRegister) ReadQuorum() bool {
-	i := 0
-	for _, l := range r.replicas {
-		if msg, ok := (<-l.Send(context.Background(), struct{}{})).(util.TimestampedValue); ok {
-			if r.current.Ts.Less(msg.Ts) {
-				r.current.Store(msg)
+func CollectResponse(ctx context.Context, big_boi chan util.TimestampedValue, 
+	input_chan <- chan interface{}) {
+
+	select{
+		case <-ctx.Done():
+			return 
+		case msg := (<-input_chan):
+			if Ts, ok := msg.(util.TimestampedValue); ok {
+				big_boi <- Ts	
 			}
-			i++
+
+		// default:
+		// 	fmt.Println("waitintg")
+	}
+}
+
+func CountResponses(ctx context.Context, big_boi chan util.TimestampedValue, 
+	r *FaultTolerantRegister, i_chan chan int64) {
+
+	i := int64(0)
+	for i < int64(len(r.replicas)) {
+		select {
+			case <-ctx.Done():
+				break
+			case msg := <-big_boi:
+				if r.current.Ts.Less(msg.Ts) {
+					r.current.Store(msg)
+				}
+				i++
 		}
 	}
-	if i > len(r.replicas)/2 {
+	// print("counted")
+	i_chan <- i
+}
+
+func (r *FaultTolerantRegister) ReadQuorum() bool {
+	// first send to every replica
+	// and collect responses to the global chan
+	big_boi_chan := make(chan util.TimestampedValue)
+	chans := make(map[int64] <-chan interface{})
+
+	for i, l := range r.replicas {
+		ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(1 * time.Second))
+		chans[i] = l.Send(context.Background(), struct{}{})
+		go CollectResponse(ctx, big_boi_chan, chans[i]) 
+	}
+
+	i_chan := make(chan int64)
+	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(1 * time.Second))
+	go CountResponses(ctx, big_boi_chan, r, i_chan)
+	i := <- i_chan
+	if i > int64(len(r.replicas)/2) {
 		return true
 	}
+	fmt.Println(i)
+	// fmt.Println(len(r.replicas)/2)
 	return false
 }
 
 func (r *FaultTolerantRegister) WriteQuorum() bool {
-	i := 0
-	for _, l := range r.replicas {
-		if _, ok := (<-l.Send(context.Background(), r.current)).(util.TimestampedValue); ok {
-			i++
-		}
+	big_boi_chan := make(chan util.TimestampedValue)
+	chans := make(map[int64] <-chan interface{})
+
+	for i, l := range r.replicas {
+		ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(1 * time.Second))
+		chans[i] = l.Send(context.Background(), r.current)
+		go CollectResponse(ctx, big_boi_chan, chans[i]) 
 	}
-	if i > len(r.replicas)/2 {
+
+	i_chan := make(chan int64)
+	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(1 * time.Second))
+	go CountResponses(ctx, big_boi_chan, r, i_chan)
+	i := <- i_chan
+	if i > int64(len(r.replicas)/2) {
+		// fmt.Println(i)
 		return true
 	}
+	fmt.Println(i)
 	return false
 }
 
@@ -78,10 +132,10 @@ func (r *FaultTolerantRegister) Receive(rid int64, msg interface{}) interface{} 
 		{
 			prev_current := r.current
 			if t.Ts.Less(prev_current.Ts) {
-				return nil
+				return r.current
 			}
 			r.current.Store(t)
-			return prev_current
+			return r.current
 		}
 	case struct{}:
 		return r.current
