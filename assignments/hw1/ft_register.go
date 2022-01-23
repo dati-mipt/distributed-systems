@@ -25,23 +25,23 @@ func NewFaultTolerantRegister(rid int64) *FaultTolerantRegister {
 }
 
 func (r *FaultTolerantRegister) Write(value int64) bool {
-	if (!r.NodeValueUpdateFromQuorum()) {
+	if !r.NodeValueUpdateFromQuorum() {
 		return false
 	}
 	r.current.Ts.Rid = r.rid
 	r.current.Val = value
 	r.current.Ts.Number++
-	if (!r.QuorumUpdateValue()) {
+	if !r.QuorumUpdateValue() {
 		return false
 	}
 	return true
 }
 
 func (r *FaultTolerantRegister) Read() int64 {
-	if (!r.NodeValueUpdateFromQuorum()) {
+	if !r.NodeValueUpdateFromQuorum() {
 		return 0
 	}
-	if (!r.QuorumUpdateValue()) {
+	if !r.QuorumUpdateValue() {
 		return 0
 	}
   
@@ -84,7 +84,7 @@ func (r *FaultTolerantRegister) NodeValueUpdateFromQuorum() bool {
 		numLink, responses, struct{}{},
 		func(msg interface{}) bool {
 			message, ok := msg.(util.TimestampedValue)
-			if (ok) {
+			if ok {
 				r.current.Store(message)
 			}
 			return ok
@@ -95,7 +95,7 @@ func (r *FaultTolerantRegister) NodeValueUpdateFromQuorum() bool {
 func (r *FaultTolerantRegister) HandleResponses(numLink int, responses chan interface{}, msg interface{}, handle func(msg interface{}) bool) bool {
 	numSuccess := 1
 	for numLink < len(r.replicas) && numSuccess < r.QuorumSize() {
-		if (handle(<-responses)) {
+		if handle(<-responses) {
 			numSuccess++
 		} else {
 			go r.SendMsg(responses, msg, numLink)
@@ -104,7 +104,7 @@ func (r *FaultTolerantRegister) HandleResponses(numLink int, responses chan inte
 	}
 
 	for i := 0; i < r.QuorumSize() - numSuccess; i++ {
-		if (handle(<-responses)) {
+		if handle(<-responses) {
 			numSuccess++
 		}
 	}
